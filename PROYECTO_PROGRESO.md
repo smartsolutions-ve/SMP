@@ -162,18 +162,26 @@ smart_pm/            ← Proyecto Django raíz
 
 > Revisión de código: 2026-03-07. Estos no son errores visuales sino problemas de arquitectura y rendimiento que deben corregirse antes de agregar más clientes al sistema.
 
-### 🔴 CRÍTICOS — Pueden causar datos corruptos
+### 🔴 CRÍTICOS — Corregidos
+
+| # | Archivo | Problema | Estado |
+|---|---------|----------|--------|
+| BUG-FORM | `templates/cotizaciones/form.html:388` | **`this.$el.submit()` en Alpine.js** — `$el` apunta al `div` padre (x-data), no al `<form>`. El formulario NUNCA se enviaba. Usuario no podía crear cotizaciones. | ✅ CORREGIDO — cambiado a `this.$el.querySelector('form').submit()` |
+| BUG-MODAL-COT | `templates/cotizaciones/detalle.html:274` | **Modal "Convertir a Proyecto" fuera del scope x-data** — El `</div>` cerraba el componente antes del modal. `x-show="showConvertir"` no funcionaba, el botón no abría el modal. | ✅ CORREGIDO — modal movido dentro del div x-data |
+| BUG-MODAL-OC | `templates/proyectos/detalle.html` | **Modal "Nueva Orden de Cambio" fuera del scope x-data** — Se abría al entrar a proyecto y no se podía cerrar. | ✅ CORREGIDO (sesión anterior) |
+| BUG-EDIT-COT | `apps/cotizaciones/views.py:130` | **`fecha_vencimiento_default` faltaba en contexto de `editar_view`** — Causaba 500 error si `cot.fecha_vencimiento` era None. | ✅ CORREGIDO |
+
+### 🔴 CRÍTICOS — Pendientes
 
 | # | Archivo | Problema | Impacto | Solución |
 |---|---------|----------|---------|----------|
 | BUG-1 | `apps/proyectos/models.py:150` | **Race condition en `_generar_codigo()`** — Si dos usuarios crean un proyecto simultáneamente, ambos pueden obtener el mismo código (ej: `PROY-2026-003` duplicado). Mismo problema en `cotizaciones/models.py:131` con `_generar_numero()` | Datos duplicados, falla de constraint | Usar `select_for_update()` dentro de una transacción atómica, o migrar a `AutoField` separado por empresa |
-| BUG-2 | `requirements/base.txt:1` | **Discrepancia de versión Django** — requirements dice `Django==6.0.3` pero el servidor corre `5.2.6`. Si alguien reinstala el entorno puede obtener una versión diferente | Inconsistencia entre entornos, bugs impredecibles | Ejecutar `pip show django` y sincronizar `requirements/base.txt` con la versión real instalada |
 
 ### 🟡 IMPORTANTES — Afectan rendimiento a escala
 
 | # | Archivo | Problema | Impacto | Solución |
 |---|---------|----------|---------|----------|
-| BUG-3 | `apps/proyectos/models.py:99` y `apps/proyectos/views.py:26` | **N+1 queries en lista de proyectos** — `costo_real_total` (property) llama `self.partidas.all()` por cada proyecto. 20 proyectos = 21 queries a la DB | Lento con muchos proyectos | Agregar `prefetch_related('partidas')` en `lista_view` |
+| BUG-3 | `apps/proyectos/models.py:99` y `apps/proyectos/views.py:26` | **N+1 queries en lista de proyectos** — `costo_real_total` (property) llama `self.partidas.all()` por cada proyecto. 20 proyectos = 21 queries a la DB | Lento con muchos proyectos | ✅ CORREGIDO — agregado `prefetch_related('partidas')` en `lista_view` |
 | BUG-4 | `apps/bd_costos/models.py:41` | **`nombre_jerarquico` sin protección de profundidad** — Property recursiva sin límite real. El comentario dice "máximo 3 niveles" pero el código no lo enforcea | Stack overflow si datos corruptos, queries recursivas | Agregar contador de profundidad o iterar en lugar de recursión |
 | BUG-5 | `apps/cotizaciones/models.py:172` | **Recalculo de totales en cada `save()` de partida** — `PartidaCotizacion.save()` llama `cotizacion.calcular_totales()` que hace `self.partidas.all()`. Si importas 50 partidas en bulk, son 50 recalculos | Muy lento en importación masiva desde Excel | Usar `update_fields` + recalcular solo al final en operaciones bulk |
 

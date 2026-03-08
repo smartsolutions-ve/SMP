@@ -25,7 +25,7 @@ def lista_view(request):
     empresa = request.tenant
     proyectos = Proyecto.objects.filter(empresa=empresa).select_related(
         'gerente_proyecto', 'supervisor'
-    )
+    ).prefetch_related('partidas')
 
     estado = request.GET.get('estado', '')
     if estado:

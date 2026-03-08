@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load l10n %}
 {% block title %}{{ accion }} Cotización{% endblock %}
 
 {% block content %}
@@ -300,7 +301,7 @@
 function cotizacionApp() {
     return {
         partidas: {{ partidas_json|default:'[]'|safe }},
-        margen: {{ cot.margen_utilidad_porcentaje|default:margen_default }},
+        margen: {% localize off %}{{ cot.margen_utilidad_porcentaje|default:margen_default }}{% endlocalize %},
         subtotal: 0,
         utilidad: 0,
         total: 0,
@@ -385,7 +386,8 @@ function cotizacionApp() {
                 alert('Debes agregar al menos una partida antes de guardar.');
                 return;
             }
-            this.$el.submit();
+            // this.$el es el div raíz (x-data), no el form. Buscar el form hijo.
+            this.$el.querySelector('form').submit();
         },
     };
 }

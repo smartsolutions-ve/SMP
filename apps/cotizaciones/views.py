@@ -133,6 +133,7 @@ def editar_view(request, cot_id):
         'partidas_json': json.dumps(partidas_qs),
         'margen_default': cot.margen_utilidad_porcentaje,
         'terminos_default': cot.terminos_condiciones,
+        'fecha_vencimiento_default': cot.fecha_vencimiento.strftime('%Y-%m-%d') if cot.fecha_vencimiento else (datetime.date.today() + datetime.timedelta(days=15)).strftime('%Y-%m-%d'),
     }
     return render(request, 'cotizaciones/form.html', context)
 

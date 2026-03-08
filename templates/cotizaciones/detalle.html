@@ -268,15 +268,21 @@
 </div>
 {% endif %}
 
-</div>
-
-<!-- Modal: Convertir a proyecto -->
-<div x-show="showConvertir" class="modal-overlay" x-cloak>
+<!-- Modal: Convertir a proyecto (DEBE estar DENTRO del div x-data) -->
+<div x-show="showConvertir" x-cloak class="modal-overlay"
+     @click.self="showConvertir = false"
+     @keydown.escape.window="showConvertir = false">
     <div class="modal-box">
-        <h2 class="text-lg font-bold text-white mb-1">
-            <i class="fas fa-hard-hat text-blue-400 mr-2"></i>
-            Convertir a Proyecto
-        </h2>
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-white">
+                <i class="fas fa-hard-hat text-blue-400 mr-2"></i>
+                Convertir a Proyecto
+            </h2>
+            <button type="button" @click="showConvertir = false"
+                    class="text-slate-500 hover:text-white transition-colors p-1">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
         <p class="text-sm mb-5" style="color: #64748B;">
             {{ cot.numero }} — {{ cot.nombre_proyecto }}<br>
             Valor del contrato: <span class="text-green-400 font-mono">${{ cot.total|floatformat:2 }}</span>
@@ -306,5 +312,7 @@
         </form>
     </div>
 </div>
+
+</div>{# cierra el div x-data principal #}
 
 {% endblock %}
