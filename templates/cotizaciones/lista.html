@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}Cotizaciones{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+
+<!-- Header -->
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-white flex items-center gap-3">
+            <i class="fas fa-file-invoice-dollar text-yellow-400"></i>
+            Cotizaciones
+        </h1>
+        <p style="color: #475569; font-size: 13px;">{{ total }} cotización{{ total|pluralize:"es" }} encontrada{{ total|pluralize:"s" }}</p>
+    </div>
+    {% if user.puede_editar_cotizaciones %}
+    <a href="/cotizaciones/nueva/" class="btn-primary">
+        <i class="fas fa-plus"></i> Nueva Cotización
+    </a>
+    {% endif %}
+</div>
+
+<!-- Filtros -->
+<div class="card-glass p-4 mb-5">
+    <form method="get" class="flex flex-wrap gap-3 items-end">
+        <div class="flex-1 min-w-48">
+            <label class="input-label">Buscar</label>
+            <div class="relative">
+                <input type="text" name="q" value="{{ busqueda }}" class="input-field pl-9"
+                       placeholder="N° cotización, cliente, proyecto...">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+            </div>
+        </div>
+        <div class="w-44">
+            <label class="input-label">Estado</label>
+            <select name="estado" class="input-field">
+                <option value="">Todos</option>
+                {% for val, label in estados %}
+                <option value="{{ val }}" {% if estado_sel == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="w-36">
+            <label class="input-label">Desde</label>
+            <input type="date" name="desde" value="{{ fecha_desde }}" class="input-field">
+        </div>
+        <div class="w-36">
+            <label class="input-label">Hasta</label>
+            <input type="date" name="hasta" value="{{ fecha_hasta }}" class="input-field">
+        </div>
+        <button type="submit" class="btn-primary">
+            <i class="fas fa-filter"></i> Filtrar
+        </button>
+        {% if busqueda or estado_sel or fecha_desde %}
+        <a href="/cotizaciones/" class="btn-secondary">
+            <i class="fas fa-times"></i>
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Tabla -->
+<div class="card-glass overflow-hidden">
+    {% if cotizaciones %}
+    <div class="overflow-x-auto">
+        <table class="table-dark">
+            <thead>
+                <tr>
+                    <th>N° Cotización</th>
+                    <th>Cliente / Proyecto</th>
+                    <th>Fecha</th>
+                    <th>Válida hasta</th>
+                    {% if user.puede_ver_costos %}<th class="text-right">Total</th>{% endif %}
+                    <th>Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cot in cotizaciones %}
+                <tr class="cursor-pointer" onclick="window.location='/cotizaciones/{{ cot.id }}/'">
+                    <td>
+                        <span class="font-mono font-semibold text-blue-400 text-sm">{{ cot.numero }}</span>
+                    </td>
+                    <td>
+                        <div class="font-medium text-white text-sm">{{ cot.nombre_proyecto }}</div>
+                        <div class="text-xs mt-0.5" style="color: #475569;">{{ cot.cliente_nombre }}</div>
+                    </td>
+                    <td class="font-mono text-xs text-slate-400">{{ cot.fecha_creacion|date:"d/m/Y" }}</td>
+                    <td>
+                        <span class="font-mono text-xs {% if cot.esta_vencida %}text-red-400{% else %}text-slate-400{% endif %}">
+                            {{ cot.fecha_vencimiento|date:"d/m/Y" }}
+                            {% if cot.esta_vencida %} ⚠{% endif %}
+                        </span>
+                    </td>
+                    {% if user.puede_ver_costos %}
+                    <td class="text-right">
+                        <span class="font-mono font-semibold text-green-400">${{ cot.total|floatformat:2 }}</span>
+                    </td>
+                    {% endif %}
+                    <td>
+                        <span class="badge badge-{{ cot.estado_color }}">
+                            {{ cot.get_estado_display }}
+                        </span>
+                    </td>
+                    <td onclick="event.stopPropagation()">
+                        <div class="flex items-center justify-center gap-1">
+                            <a href="/cotizaciones/{{ cot.id }}/" class="btn-secondary btn-sm" data-tooltip="Ver detalle">
+                                <i class="fas fa-eye text-xs"></i>
+                            </a>
+                            {% if cot.puede_editarse and user.puede_editar_cotizaciones %}
+                            <a href="/cotizaciones/{{ cot.id }}/editar/" class="btn-secondary btn-sm" data-tooltip="Editar">
+                                <i class="fas fa-edit text-xs"></i>
+                            </a>
+                            {% endif %}
+                            <a href="/cotizaciones/{{ cot.id }}/pdf/" class="btn-secondary btn-sm" data-tooltip="Descargar PDF" target="_blank">
+                                <i class="fas fa-file-pdf text-xs text-red-400"></i>
+                            </a>
+                            {% if user.puede_editar_cotizaciones %}
+                            <form method="post" action="/cotizaciones/{{ cot.id }}/duplicar/">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-secondary btn-sm" data-tooltip="Duplicar">
+                                    <i class="fas fa-copy text-xs"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="p-16 text-center">
+        <i class="fas fa-file-invoice-dollar text-4xl mb-4" style="color: #334155;"></i>
+        <p class="text-lg font-medium text-white mb-2">
+            {% if busqueda %}Sin resultados{% else %}Sin cotizaciones aún{% endif %}
+        </p>
+        <p style="color: #475569; font-size: 13px;">
+            {% if busqueda %}Intenta con otros términos.{% else %}Crea tu primera cotización.{% endif %}
+        </p>
+        {% if not busqueda and user.puede_editar_cotizaciones %}
+        <a href="/cotizaciones/nueva/" class="btn-primary mt-5 inline-flex">
+            <i class="fas fa-plus"></i> Nueva Cotización
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}Categorías de Ítems{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in" x-data="{ mostrarForm: false }">
+
+<div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-4">
+        <a href="/bd-costos/" class="btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <h1 class="text-xl font-bold text-white flex items-center gap-2">
+            <i class="fas fa-folder-tree text-yellow-400"></i>
+            Categorías de Ítems
+        </h1>
+    </div>
+    <button @click="mostrarForm = !mostrarForm" class="btn-primary">
+        <i class="fas fa-plus"></i> Nueva Categoría
+    </button>
+</div>
+
+<!-- Formulario nueva categoría -->
+<div x-show="mostrarForm" x-transition class="card-glass p-5 mb-5">
+    <h2 class="font-semibold text-white mb-4">Nueva Categoría</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="input-label">Nombre <span class="text-red-400">*</span></label>
+                <input type="text" name="nombre" class="input-field"
+                       placeholder="Ej: Preliminares" required>
+            </div>
+            <div>
+                <label class="input-label">Código <span class="text-red-400">*</span></label>
+                <input type="text" name="codigo" class="input-field font-mono"
+                       placeholder="Ej: 01, 01.01" required>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="input-label">Categoría padre (opcional)</label>
+                <select name="padre" class="input-field">
+                    <option value="">Ninguna (categoría raíz)</option>
+                    {% for cat in categorias %}
+                    <option value="{{ cat.id }}">{{ cat.codigo }} — {{ cat.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="input-label">Descripción (opcional)</label>
+                <input type="text" name="descripcion" class="input-field"
+                       placeholder="Descripción breve">
+            </div>
+        </div>
+        <div class="flex gap-3 justify-end">
+            <button type="button" @click="mostrarForm = false" class="btn-secondary">Cancelar</button>
+            <button type="submit" class="btn-primary">
+                <i class="fas fa-save"></i> Crear
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Árbol de categorías -->
+<div class="card-glass overflow-hidden">
+    {% if categorias_raiz %}
+    <div class="p-4 border-b" style="border-color: rgba(255,255,255,0.06);">
+        <span class="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+            {{ categorias.count }} categorías en total
+        </span>
+    </div>
+    <div class="p-4">
+        {% for cat in categorias_raiz %}
+        <div class="mb-2">
+            <div class="flex items-center gap-3 p-3 rounded-xl" style="background: rgba(15,23,42,0.5);">
+                <i class="fas fa-folder text-yellow-400"></i>
+                <span class="font-mono text-sm font-semibold text-blue-400">{{ cat.codigo }}</span>
+                <span class="font-medium text-white">{{ cat.nombre }}</span>
+                {% if cat.descripcion %}
+                <span class="text-xs" style="color: #475569;">— {{ cat.descripcion }}</span>
+                {% endif %}
+                <span class="ml-auto text-xs" style="color: #334155;">
+                    {{ cat.items.count }} ítems
+                </span>
+            </div>
+            <!-- Subcategorías -->
+            {% if cat.subcategorias.all %}
+            <div class="ml-8 mt-1 space-y-1">
+                {% for sub in cat.subcategorias.all %}
+                <div class="flex items-center gap-3 p-2.5 rounded-lg" style="background: rgba(15,23,42,0.3);">
+                    <i class="fas fa-folder-open text-sm" style="color: #475569;"></i>
+                    <span class="font-mono text-sm text-slate-400">{{ sub.codigo }}</span>
+                    <span class="text-sm text-slate-300">{{ sub.nombre }}</span>
+                    <span class="ml-auto text-xs" style="color: #334155;">
+                        {{ sub.items.count }} ítems
+                    </span>
+                </div>
+                    <!-- Nivel 3 -->
+                    {% for sub2 in sub.subcategorias.all %}
+                    <div class="ml-6 flex items-center gap-3 p-2 rounded-lg" style="background: rgba(15,23,42,0.2);">
+                        <i class="fas fa-file text-xs" style="color: #334155;"></i>
+                        <span class="font-mono text-xs text-slate-500">{{ sub2.codigo }}</span>
+                        <span class="text-xs text-slate-400">{{ sub2.nombre }}</span>
+                        <span class="ml-auto text-xs" style="color: #334155;">
+                            {{ sub2.items.count }} ítems
+                        </span>
+                    </div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="p-12 text-center">
+        <i class="fas fa-folder-open text-4xl mb-3" style="color: #334155;"></i>
+        <p class="text-white font-medium mb-2">Sin categorías</p>
+        <p style="color: #475569; font-size: 13px;">
+            Crea categorías para organizar tu base de datos de costos.
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+</div>
+{% endblock %}

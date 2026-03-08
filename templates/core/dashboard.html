@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="flex items-center justify-between mb-6 animate-fade-in">
+    <div>
+        <h1 class="text-2xl font-bold text-white">Dashboard</h1>
+        <p style="color: #475569; font-size: 14px;">
+            Bienvenido, {{ user.get_full_name|default:user.username }} —
+            {% now "j \d\e N \d\e Y" %}
+        </p>
+    </div>
+    <div class="flex gap-3">
+        <a href="/cotizaciones/nueva/" class="btn-primary">
+            <i class="fas fa-plus"></i> Nueva Cotización
+        </a>
+    </div>
+</div>
+
+{% if not empresa %}
+<div class="alert alert-warning mb-6">
+    <i class="fas fa-exclamation-triangle"></i>
+    No tienes empresa asignada. Contacta al administrador del sistema.
+</div>
+{% else %}
+
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+
+    <!-- Proyectos Activos -->
+    <div class="metric-card p-5 animate-fade-in delay-1">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(0,102,255,0.2);">
+                <i class="fas fa-hard-hat text-blue-400"></i>
+            </div>
+            <span class="badge badge-blue">Activos</span>
+        </div>
+        <div class="font-mono text-3xl font-bold text-white mb-1">{{ proyectos_activos_count }}</div>
+        <div class="text-sm" style="color: #64748B;">Proyectos en curso</div>
+    </div>
+
+    <!-- Cotizaciones Pendientes -->
+    <div class="metric-card amarillo p-5 animate-fade-in delay-2">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(245,158,11,0.2);">
+                <i class="fas fa-file-invoice-dollar text-yellow-400"></i>
+            </div>
+            <span class="badge badge-yellow">Pendientes</span>
+        </div>
+        <div class="font-mono text-3xl font-bold text-white mb-1">{{ cotizaciones_pendientes_count }}</div>
+        <div class="text-sm" style="color: #64748B;">Cotizaciones sin respuesta</div>
+    </div>
+
+    <!-- Valor en Ejecución -->
+    <div class="metric-card verde p-5 animate-fade-in delay-3">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(34,197,94,0.2);">
+                <i class="fas fa-dollar-sign text-green-400"></i>
+            </div>
+            <span class="badge badge-green">En obra</span>
+        </div>
+        <div class="font-mono text-2xl font-bold text-white mb-1">
+            ${{ valor_en_ejecucion|floatformat:0 }}
+        </div>
+        <div class="text-sm" style="color: #64748B;">Valor en ejecución (USD)</div>
+    </div>
+
+    <!-- Acceso rápido BD costos -->
+    <div class="metric-card p-5 animate-fade-in delay-4 cursor-pointer" onclick="window.location='/bd-costos/'">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(168,85,247,0.2);">
+                <i class="fas fa-database" style="color: #C084FC;"></i>
+            </div>
+            <span class="badge badge-purple">BD Costos</span>
+        </div>
+        <div class="font-mono text-3xl font-bold text-white mb-1">
+            <i class="fas fa-arrow-right text-xl"></i>
+        </div>
+        <div class="text-sm" style="color: #64748B;">Gestionar precios</div>
+    </div>
+</div>
+
+<!-- Alertas -->
+{% if alertas %}
+<div class="mb-6 space-y-2 animate-fade-in">
+    {% for alerta in alertas %}
+    <div class="alert alert-{{ alerta.tipo }} cursor-pointer" onclick="window.location='{{ alerta.url }}'">
+        <i class="fas fa-{% if alerta.tipo == 'danger' %}exclamation-circle{% elif alerta.tipo == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+        {{ alerta.mensaje }}
+        <i class="fas fa-arrow-right ml-auto text-xs opacity-50"></i>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Proyectos activos + Cotizaciones recientes -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+    <!-- Lista de proyectos activos -->
+    <div class="xl:col-span-2 card-glass overflow-hidden animate-fade-in">
+        <div class="flex items-center justify-between p-5 border-b" style="border-color: rgba(255,255,255,0.06);">
+            <h2 class="font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-hard-hat text-blue-400"></i>
+                Proyectos en Ejecución
+            </h2>
+            <a href="/proyectos/" class="text-xs text-blue-400 hover:text-blue-300">Ver todos →</a>
+        </div>
+
+        {% if proyectos_lista %}
+        <div class="divide-y" style="divide-color: rgba(255,255,255,0.04);">
+            {% for proyecto in proyectos_lista %}
+            <div class="p-5 hover:bg-white hover:bg-opacity-2 transition-colors cursor-pointer"
+                 onclick="window.location='/proyectos/{{ proyecto.id }}/'">
+                <div class="flex items-start justify-between mb-2">
+                    <div>
+                        <div class="font-medium text-white text-sm">{{ proyecto.nombre }}</div>
+                        <div class="text-xs mt-0.5" style="color: #475569;">
+                            {{ proyecto.codigo }} • {{ proyecto.cliente_nombre }}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        {% if proyecto.esta_atrasado %}
+                        <span class="badge badge-red"><i class="fas fa-clock"></i> Atrasado</span>
+                        {% elif proyecto.estado == 'EN_EJECUCION' %}
+                        <span class="badge badge-blue"><i class="fas fa-play"></i> En obra</span>
+                        {% elif proyecto.estado == 'PLANIFICACION' %}
+                        <span class="badge badge-yellow"><i class="fas fa-clipboard"></i> Planif.</span>
+                        {% elif proyecto.estado == 'PAUSADO' %}
+                        <span class="badge badge-gray"><i class="fas fa-pause"></i> Pausado</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Barra de progreso -->
+                <div class="flex items-center gap-3">
+                    <div class="progress-bar-track flex-1">
+                        <div class="progress-bar-fill"
+                             style="width: {{ proyecto.porcentaje_avance }}%;
+                                    background: {% if proyecto.porcentaje_avance >= 80 %}#22C55E{% elif proyecto.porcentaje_avance >= 40 %}#F59E0B{% else %}#EF4444{% endif %};">
+                        </div>
+                    </div>
+                    <span class="font-mono text-xs font-semibold"
+                          style="color: {% if proyecto.porcentaje_avance >= 80 %}#22C55E{% elif proyecto.porcentaje_avance >= 40 %}#F59E0B{% else %}#EF4444{% endif %}; min-width: 40px; text-align: right;">
+                        {{ proyecto.porcentaje_avance }}%
+                    </span>
+                </div>
+
+                {% if user.puede_ver_costos %}
+                <div class="flex gap-4 mt-2">
+                    <span class="text-xs" style="color: #475569;">
+                        Contrato: <span class="text-slate-300 font-mono">${{ proyecto.valor_contrato|floatformat:0 }}</span>
+                    </span>
+                    <span class="text-xs" style="color: #475569;">
+                        Fin: <span class="{% if proyecto.esta_atrasado %}text-red-400{% else %}text-slate-300{% endif %}">{{ proyecto.fecha_fin_planeada|date:"d/m/Y" }}</span>
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-10 text-center">
+            <i class="fas fa-hard-hat text-3xl mb-3" style="color: #334155;"></i>
+            <p style="color: #475569;">No hay proyectos activos aún.</p>
+            <a href="/cotizaciones/nueva/" class="btn-primary mt-4 inline-flex">
+                <i class="fas fa-plus"></i> Crear cotización
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Cotizaciones recientes -->
+    <div class="card-glass overflow-hidden animate-fade-in">
+        <div class="flex items-center justify-between p-5 border-b" style="border-color: rgba(255,255,255,0.06);">
+            <h2 class="font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-file-invoice-dollar text-yellow-400"></i>
+                Cotizaciones
+            </h2>
+            <a href="/cotizaciones/" class="text-xs text-blue-400 hover:text-blue-300">Ver todas →</a>
+        </div>
+
+        {% if cotizaciones_recientes_lista %}
+        <div class="divide-y" style="divide-color: rgba(255,255,255,0.04);">
+            {% for cot in cotizaciones_recientes_lista %}
+            <div class="p-4 hover:bg-white hover:bg-opacity-2 transition-colors cursor-pointer"
+                 onclick="window.location='/cotizaciones/{{ cot.id }}/'">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <div class="text-sm font-medium text-white truncate">{{ cot.nombre_proyecto }}</div>
+                        <div class="text-xs mt-0.5 truncate" style="color: #475569;">
+                            {{ cot.cliente_nombre }}
+                        </div>
+                    </div>
+                    <span class="badge badge-{{ cot.estado_color }} shrink-0">
+                        {{ cot.get_estado_display }}
+                    </span>
+                </div>
+                {% if user.puede_ver_costos %}
+                <div class="mt-1">
+                    <span class="font-mono text-xs text-green-400">${{ cot.total|floatformat:2 }}</span>
+                    <span class="text-xs ml-2" style="color: #334155;">{{ cot.numero }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-10 text-center">
+            <i class="fas fa-file-alt text-3xl mb-3" style="color: #334155;"></i>
+            <p class="text-sm" style="color: #475569;">Sin cotizaciones pendientes.</p>
+        </div>
+        {% endif %}
+
+        <!-- Acceso rápido -->
+        <div class="p-4 border-t" style="border-color: rgba(255,255,255,0.06);">
+            <a href="/cotizaciones/nueva/" class="btn-primary w-full justify-center text-sm">
+                <i class="fas fa-plus"></i> Nueva Cotización
+            </a>
+        </div>
+    </div>
+
+</div><!-- /grid -->
+
+{% endif %}{# empresa #}
+{% endblock %}

@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% block title %}Reportes{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+
+<!-- Header -->
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-white flex items-center gap-3">
+        <i class="fas fa-chart-bar text-purple-400"></i> Reportes y Análisis
+    </h1>
+</div>
+
+<!-- Filtro de fechas -->
+<form method="get" class="card-glass p-4 mb-5 flex flex-wrap gap-3 items-end">
+    <div>
+        <label class="input-label">Desde</label>
+        <input type="date" name="desde" value="{{ fecha_desde }}" class="input-field">
+    </div>
+    <div>
+        <label class="input-label">Hasta</label>
+        <input type="date" name="hasta" value="{{ fecha_hasta }}" class="input-field">
+    </div>
+    <button type="submit" class="btn-primary">
+        <i class="fas fa-sync"></i> Actualizar
+    </button>
+</form>
+
+<!-- KPIs resumen -->
+<div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+    <div class="metric-card p-4 text-center">
+        <div class="text-xs uppercase tracking-wider mb-1" style="color: #475569;">Total proyectos</div>
+        <div class="font-mono text-2xl font-bold text-white">{{ total_proyectos }}</div>
+    </div>
+    <div class="metric-card verde p-4 text-center">
+        <div class="text-xs uppercase tracking-wider mb-1" style="color: #475569;">Valor total ($)</div>
+        <div class="font-mono text-xl font-bold text-green-400">${{ total_valor|floatformat:0 }}</div>
+    </div>
+    <div class="metric-card p-4 text-center">
+        <div class="text-xs uppercase tracking-wider mb-1" style="color: #475569;">Utilidad total</div>
+        <div class="font-mono text-xl font-bold {% if total_utilidad >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
+            ${{ total_utilidad|floatformat:0 }}
+        </div>
+    </div>
+    <div class="metric-card p-4 text-center">
+        <div class="text-xs uppercase tracking-wider mb-1" style="color: #475569;">Margen promedio</div>
+        <div class="font-mono text-2xl font-bold {% if margen_promedio >= 15 %}text-green-400{% elif margen_promedio >= 0 %}text-yellow-400{% else %}text-red-400{% endif %}">
+            {{ margen_promedio }}%
+        </div>
+    </div>
+</div>
+
+<!-- Gráfica + Cotizaciones -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-6">
+
+    <!-- Gráfica de rentabilidad -->
+    <div class="xl:col-span-2 card-glass p-5">
+        <h2 class="font-semibold text-white mb-4 flex items-center gap-2">
+            <i class="fas fa-chart-bar text-blue-400"></i>
+            Valor vs Costo Real por Proyecto
+        </h2>
+        {% if total_proyectos > 0 %}
+        <canvas id="graficaRentabilidad" height="120"></canvas>
+        {% else %}
+        <div class="py-12 text-center" style="color: #334155;">
+            <i class="fas fa-chart-bar text-3xl mb-2"></i>
+            <p>Sin datos para mostrar en el período seleccionado.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Análisis de cotizaciones -->
+    <div class="card-glass p-5">
+        <h2 class="font-semibold text-white mb-4 flex items-center gap-2">
+            <i class="fas fa-file-invoice-dollar text-yellow-400"></i>
+            Cotizaciones
+        </h2>
+        <div class="space-y-3">
+            <div class="flex justify-between text-sm">
+                <span style="color: #64748B;">Total cotizaciones:</span>
+                <span class="font-mono font-semibold text-white">{{ total_cot }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span style="color: #64748B;">Aprobadas/Convertidas:</span>
+                <span class="font-mono font-semibold text-green-400">{{ cot_aprobadas }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span style="color: #64748B;">Rechazadas:</span>
+                <span class="font-mono font-semibold text-red-400">{{ cot_rechazadas }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span style="color: #64748B;">Pendientes:</span>
+                <span class="font-mono font-semibold text-yellow-400">{{ cot_pendientes }}</span>
+            </div>
+            <div class="pt-3 border-t" style="border-color: rgba(255,255,255,0.06);">
+                <div class="flex justify-between text-sm">
+                    <span style="color: #64748B;">Tasa de conversión:</span>
+                    <span class="font-mono font-semibold {% if tasa_conversion >= 50 %}text-green-400{% else %}text-yellow-400{% endif %}">
+                        {{ tasa_conversion }}%
+                    </span>
+                </div>
+                <div class="flex justify-between text-sm mt-1">
+                    <span style="color: #64748B;">Valor aprobado:</span>
+                    <span class="font-mono text-green-400">${{ valor_cotizaciones|floatformat:0 }}</span>
+                </div>
+            </div>
+        </div>
+
+        {% if total_cot > 0 %}
+        <div class="mt-4">
+            <canvas id="graficaCotizaciones" height="120"></canvas>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tabla de rentabilidad por proyecto -->
+{% if datos_rentabilidad %}
+<div class="card-glass overflow-hidden">
+    <div class="p-4 border-b" style="border-color: rgba(255,255,255,0.06);">
+        <h2 class="font-semibold text-white flex items-center gap-2">
+            <i class="fas fa-table text-blue-400"></i>
+            Rentabilidad por Proyecto
+        </h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="table-dark">
+            <thead>
+                <tr>
+                    <th>Proyecto</th>
+                    <th>Cliente</th>
+                    <th>Estado</th>
+                    <th class="text-right">Valor contrato</th>
+                    <th class="text-right">Costo real</th>
+                    <th class="text-right">Utilidad</th>
+                    <th class="text-right">Margen %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in datos_rentabilidad %}
+                <tr>
+                    <td>
+                        <div class="font-mono text-xs text-blue-400">{{ d.codigo }}</div>
+                        <div class="text-sm text-white">{{ d.nombre }}</div>
+                    </td>
+                    <td class="text-sm text-slate-400">{{ d.cliente }}</td>
+                    <td><span class="badge badge-gray">{{ d.estado }}</span></td>
+                    <td class="text-right font-mono text-sm text-white">${{ d.valor_contrato|floatformat:0 }}</td>
+                    <td class="text-right font-mono text-sm text-slate-300">${{ d.costo_real|floatformat:0 }}</td>
+                    <td class="text-right font-mono font-semibold {% if d.rentable %}text-green-400{% else %}text-red-400{% endif %}">
+                        ${{ d.utilidad|floatformat:0 }}
+                    </td>
+                    <td class="text-right">
+                        <span class="font-mono font-semibold {% if d.margen >= 15 %}text-green-400{% elif d.margen >= 0 %}text-yellow-400{% else %}text-red-400{% endif %}">
+                            {{ d.margen }}%
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="border-top: 2px solid rgba(255,255,255,0.1);">
+                    <td colspan="3" class="font-semibold text-white" style="padding: 12px 16px;">TOTALES</td>
+                    <td class="text-right font-mono font-bold text-white" style="padding: 12px 16px;">${{ total_valor|floatformat:0 }}</td>
+                    <td class="text-right font-mono font-bold text-slate-300" style="padding: 12px 16px;">${{ total_costo|floatformat:0 }}</td>
+                    <td class="text-right font-mono font-bold {% if total_utilidad >= 0 %}text-green-400{% else %}text-red-400{% endif %}" style="padding: 12px 16px;">
+                        ${{ total_utilidad|floatformat:0 }}
+                    </td>
+                    <td class="text-right font-mono font-bold {% if margen_promedio >= 15 %}text-green-400{% elif margen_promedio >= 0 %}text-yellow-400{% else %}text-red-400{% endif %}" style="padding: 12px 16px;">
+                        {{ margen_promedio }}%
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card-glass p-12 text-center">
+    <i class="fas fa-chart-line text-4xl mb-4" style="color: #334155;"></i>
+    <p class="text-white font-medium mb-2">Sin datos en el período seleccionado</p>
+    <p style="color: #475569; font-size: 13px;">Ajusta el rango de fechas o agrega proyectos.</p>
+</div>
+{% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+{% if total_proyectos > 0 %}
+// Gráfica de rentabilidad
+const ctxR = document.getElementById('graficaRentabilidad').getContext('2d');
+new Chart(ctxR, {
+    type: 'bar',
+    data: {
+        labels: {{ grafica_labels|safe }},
+        datasets: [
+            {
+                label: 'Valor contrato',
+                data: {{ grafica_valor|safe }},
+                backgroundColor: 'rgba(0, 102, 255, 0.7)',
+                borderRadius: 4,
+            },
+            {
+                label: 'Costo real',
+                data: {{ grafica_costo|safe }},
+                backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                borderRadius: 4,
+            },
+            {
+                label: 'Utilidad',
+                data: {{ grafica_utilidad|safe }},
+                backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                borderRadius: 4,
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { labels: { color: '#94A3B8', font: { family: 'Outfit', size: 12 } } },
+        },
+        scales: {
+            x: { ticks: { color: '#475569', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' } },
+            y: { ticks: { color: '#94A3B8', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' } }
+        }
+    }
+});
+{% endif %}
+
+{% if total_cot > 0 %}
+// Gráfica donut cotizaciones
+const estadosCot = {{ estados_cotizacion|safe }};
+const ctxC = document.getElementById('graficaCotizaciones').getContext('2d');
+new Chart(ctxC, {
+    type: 'doughnut',
+    data: {
+        labels: estadosCot.map(e => e.label),
+        datasets: [{
+            data: estadosCot.map(e => e.count),
+            backgroundColor: ['#64748B','#3B82F6','#22C55E','#EF4444','#A855F7'],
+            borderWidth: 0,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom', labels: { color: '#94A3B8', font: { family: 'Outfit', size: 11 }, padding: 10 } }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

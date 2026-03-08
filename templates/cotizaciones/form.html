@@ -1,0 +1,393 @@
+{% extends 'base.html' %}
+{% block title %}{{ accion }} Cotización{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in" x-data="cotizacionApp()">
+
+<!-- Header -->
+<div class="flex items-center gap-4 mb-6">
+    <a href="/cotizaciones/" class="btn-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+    <div>
+        <h1 class="text-xl font-bold text-white">{{ accion }} Cotización</h1>
+        {% if cot %}<p style="color: #475569; font-size: 13px;">{{ cot.numero }}</p>{% endif %}
+    </div>
+</div>
+
+<form method="post" @submit.prevent="enviarFormulario">
+    {% csrf_token %}
+    <input type="hidden" name="partidas_data" :value="JSON.stringify(partidas)">
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+        <!-- Columna principal: 2/3 -->
+        <div class="xl:col-span-2 space-y-4">
+
+            <!-- Datos del cliente -->
+            <div class="card-glass p-5">
+                <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                    <i class="fas fa-user mr-2 text-blue-400"></i>Datos del Cliente
+                </h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="input-label">Nombre / Razón social <span class="text-red-400">*</span></label>
+                        <input type="text" name="cliente_nombre" class="input-field"
+                               placeholder="Ej: Produsal, C.A."
+                               value="{{ cot.cliente_nombre|default:'' }}" required>
+                    </div>
+                    <div>
+                        <label class="input-label">RIF</label>
+                        <input type="text" name="cliente_rif" class="input-field font-mono"
+                               placeholder="J-12345678-9"
+                               value="{{ cot.cliente_rif|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="input-label">Teléfono</label>
+                        <input type="text" name="cliente_telefono" class="input-field"
+                               placeholder="0212-0000000"
+                               value="{{ cot.cliente_telefono|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="input-label">Email</label>
+                        <input type="email" name="cliente_email" class="input-field"
+                               placeholder="cliente@empresa.com"
+                               value="{{ cot.cliente_email|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="input-label">Persona de contacto</label>
+                        <input type="text" name="cliente_contacto" class="input-field"
+                               placeholder="Nombre del contacto"
+                               value="{{ cot.cliente_contacto|default:'' }}">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="input-label">Dirección</label>
+                        <input type="text" name="cliente_direccion" class="input-field"
+                               placeholder="Dirección del cliente"
+                               value="{{ cot.cliente_direccion|default:'' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Datos del proyecto -->
+            <div class="card-glass p-5">
+                <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                    <i class="fas fa-hard-hat mr-2 text-yellow-400"></i>Datos del Proyecto
+                </h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="input-label">Nombre del proyecto <span class="text-red-400">*</span></label>
+                        <input type="text" name="nombre_proyecto" class="input-field"
+                               placeholder="Ej: Reparación Bomba Agua Caliente en Caldera"
+                               value="{{ cot.nombre_proyecto|default:'' }}" required>
+                    </div>
+                    <div>
+                        <label class="input-label">Ubicación</label>
+                        <input type="text" name="ubicacion" class="input-field"
+                               placeholder="Ej: Plata Catia La Mar"
+                               value="{{ cot.ubicacion|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="input-label">Válida hasta <span class="text-red-400">*</span></label>
+                        <input type="date" name="fecha_vencimiento" class="input-field"
+                               value="{{ cot.fecha_vencimiento|date:'Y-m-d'|default:fecha_vencimiento_default }}"
+                               required>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="input-label">Descripción del alcance <span class="text-red-400">*</span></label>
+                        <textarea name="descripcion" rows="3" class="input-field"
+                                  placeholder="Descripción detallada del trabajo a realizar..."
+                                  required>{{ cot.descripcion|default:'' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección partidas -->
+            <div class="card-glass p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+                        <i class="fas fa-list mr-2 text-blue-400"></i>
+                        Partidas (<span x-text="partidas.length"></span>)
+                    </h2>
+                    <div class="flex gap-2">
+                        <button type="button" @click="mostrarBuscador = !mostrarBuscador"
+                                class="btn-secondary btn-sm">
+                            <i class="fas fa-search"></i> Buscar en BD Costos
+                        </button>
+                        <button type="button" @click="agregarPartida()"
+                                class="btn-primary btn-sm">
+                            <i class="fas fa-plus"></i> Agregar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Buscador BD Costos -->
+                <div x-show="mostrarBuscador" x-transition class="mb-4 p-4 rounded-xl" style="background: rgba(0,102,255,0.06); border: 1px solid rgba(0,102,255,0.15);">
+                    <label class="input-label mb-2">Buscar ítem en Base de Datos de Costos</label>
+                    <div class="flex gap-2">
+                        <input type="text" x-model="busquedaBD" @input.debounce="buscarEnBD()"
+                               class="input-field" placeholder="Ej: bomba, rodamiento, soldadura...">
+                        <button type="button" @click="mostrarBuscador = false" class="btn-secondary btn-sm">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div x-show="resultadosBD.length > 0" class="mt-2 rounded-xl overflow-hidden" style="border: 1px solid rgba(255,255,255,0.06);">
+                        <template x-for="item in resultadosBD" :key="item.id">
+                            <div class="flex items-center justify-between p-3 cursor-pointer hover:bg-blue-500 hover:bg-opacity-10 transition-colors border-b" style="border-color: rgba(255,255,255,0.04);"
+                                 @click="seleccionarDesdeDB(item)">
+                                <div>
+                                    <span class="font-mono text-xs text-blue-400" x-text="item.codigo"></span>
+                                    <span class="ml-2 text-sm text-white" x-text="item.descripcion"></span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="font-mono text-green-400 text-sm" x-text="'$' + item.precio.toFixed(2)"></span>
+                                    <span class="text-xs text-slate-500 ml-1" x-text="'/' + item.unidad"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <div x-show="busquedaBD.length > 2 && resultadosBD.length === 0" class="mt-2 text-xs text-center" style="color: #475569;">
+                        Sin resultados. Agrega la partida manualmente.
+                    </div>
+                </div>
+
+                <!-- Tabla de partidas -->
+                <div x-show="partidas.length > 0">
+                    <div class="overflow-x-auto">
+                        <table class="w-full" style="border-collapse: separate; border-spacing: 0;">
+                            <thead>
+                                <tr>
+                                    <th class="text-left px-2 py-2 text-xs font-semibold uppercase text-slate-500" style="width: 80px;">Código</th>
+                                    <th class="text-left px-2 py-2 text-xs font-semibold uppercase text-slate-500">Descripción</th>
+                                    <th class="text-left px-2 py-2 text-xs font-semibold uppercase text-slate-500" style="width: 80px;">Unidad</th>
+                                    <th class="text-left px-2 py-2 text-xs font-semibold uppercase text-slate-500" style="width: 90px;">Sección</th>
+                                    <th class="text-right px-2 py-2 text-xs font-semibold uppercase text-slate-500" style="width: 90px;">Cant.</th>
+                                    <th class="text-right px-2 py-2 text-xs font-semibold uppercase text-slate-500" style="width: 100px;">P.Unit.</th>
+                                    <th class="text-right px-2 py-2 text-xs font-semibold uppercase text-slate-500" style="width: 100px;">Subtotal</th>
+                                    <th style="width: 36px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="(p, idx) in partidas" :key="idx">
+                                    <tr>
+                                        <td class="px-1 py-1.5">
+                                            <input type="text" x-model="p.codigo"
+                                                   class="input-field font-mono text-xs py-1.5"
+                                                   placeholder="—">
+                                        </td>
+                                        <td class="px-1 py-1.5">
+                                            <input type="text" x-model="p.descripcion"
+                                                   class="input-field text-sm py-1.5"
+                                                   placeholder="Descripción del trabajo" required>
+                                        </td>
+                                        <td class="px-1 py-1.5">
+                                            <input type="text" x-model="p.unidad"
+                                                   class="input-field font-mono text-xs py-1.5"
+                                                   placeholder="un">
+                                        </td>
+                                        <td class="px-1 py-1.5">
+                                            <input type="text" x-model="p.categoria"
+                                                   class="input-field text-xs py-1.5"
+                                                   placeholder="Sección">
+                                        </td>
+                                        <td class="px-1 py-1.5">
+                                            <input type="number" x-model="p.cantidad"
+                                                   @input="calcularSubtotal(p)"
+                                                   class="input-field font-mono text-xs py-1.5 text-right"
+                                                   placeholder="0" step="0.0001" min="0">
+                                        </td>
+                                        <td class="px-1 py-1.5">
+                                            <input type="number" x-model="p.precio_unitario"
+                                                   @input="calcularSubtotal(p)"
+                                                   class="input-field font-mono text-xs py-1.5 text-right"
+                                                   placeholder="0.00" step="0.0001" min="0">
+                                        </td>
+                                        <td class="px-2 py-1.5 text-right">
+                                            <span class="font-mono text-sm font-semibold text-green-400"
+                                                  x-text="'$' + parseFloat(p.subtotal || 0).toFixed(2)"></span>
+                                        </td>
+                                        <td class="px-1 py-1.5 text-center">
+                                            <button type="button" @click="eliminarPartida(idx)"
+                                                    class="text-slate-600 hover:text-red-400 transition-colors">
+                                                <i class="fas fa-trash text-xs"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div x-show="partidas.length === 0" class="py-8 text-center">
+                    <i class="fas fa-list text-3xl mb-2" style="color: #334155;"></i>
+                    <p class="text-sm" style="color: #475569;">Sin partidas aún. Agrega ítems arriba.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna lateral: 1/3 -->
+        <div class="space-y-4">
+
+            <!-- Totales -->
+            <div class="card-glass p-5 sticky top-5">
+                <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                    <i class="fas fa-calculator mr-2 text-green-400"></i>Totales
+                </h2>
+
+                <div class="space-y-3 mb-4">
+                    <div class="flex justify-between text-sm">
+                        <span style="color: #64748B;">Subtotal:</span>
+                        <span class="font-mono font-semibold text-white" x-text="'$' + subtotal.toFixed(2)"></span>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span style="color: #64748B;">Margen utilidad:</span>
+                            <span class="font-mono text-yellow-400" x-text="margen + '%'"></span>
+                        </div>
+                        <input type="number" name="margen_utilidad_porcentaje"
+                               x-model="margen" @input="calcularTotales"
+                               class="input-field font-mono text-sm py-2"
+                               placeholder="15" step="0.01" min="0" max="100">
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span style="color: #64748B;">Utilidad:</span>
+                        <span class="font-mono text-yellow-400" x-text="'$' + utilidad.toFixed(2)"></span>
+                    </div>
+                    <div class="pt-3 border-t" style="border-color: rgba(255,255,255,0.08);">
+                        <div class="flex justify-between">
+                            <span class="font-bold text-white">TOTAL USD:</span>
+                            <span class="font-mono text-xl font-bold text-green-400" x-text="'$' + total.toFixed(2)"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Términos y condiciones -->
+                <div class="mb-4">
+                    <label class="input-label">Términos y condiciones</label>
+                    <textarea name="terminos_condiciones" rows="6" class="input-field text-xs"
+                              style="resize: vertical;">{{ cot.terminos_condiciones|default:terminos_default }}</textarea>
+                </div>
+
+                <!-- Notas internas -->
+                <div class="mb-5">
+                    <label class="input-label">Notas internas (no visible al cliente)</label>
+                    <textarea name="notas_internas" rows="2" class="input-field text-xs"
+                              placeholder="Notas privadas del equipo..."
+                              style="resize: vertical;">{{ cot.notas_internas|default:'' }}</textarea>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="flex flex-col gap-2">
+                    <button type="submit" class="btn-primary w-full justify-center">
+                        <i class="fas fa-save"></i>
+                        {% if cot %}Guardar cambios{% else %}Crear cotización{% endif %}
+                    </button>
+                    <a href="/cotizaciones/" class="btn-secondary w-full justify-center">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function cotizacionApp() {
+    return {
+        partidas: {{ partidas_json|default:'[]'|safe }},
+        margen: {{ cot.margen_utilidad_porcentaje|default:margen_default }},
+        subtotal: 0,
+        utilidad: 0,
+        total: 0,
+        mostrarBuscador: false,
+        busquedaBD: '',
+        resultadosBD: [],
+
+        init() {
+            // Si hay partidas existentes (edición), normalizar formato
+            this.partidas = this.partidas.map(p => ({
+                codigo: p.codigo || '',
+                descripcion: p.descripcion || '',
+                unidad: p.unidad || 'un',
+                categoria: p.categoria || '',
+                cantidad: parseFloat(p.cantidad) || 0,
+                precio_unitario: parseFloat(p.precio_unitario) || 0,
+                subtotal: parseFloat(p.subtotal) || 0,
+            }));
+            this.calcularTotales();
+        },
+
+        agregarPartida() {
+            this.partidas.push({
+                codigo: '',
+                descripcion: '',
+                unidad: 'un',
+                categoria: '',
+                cantidad: 1,
+                precio_unitario: 0,
+                subtotal: 0,
+            });
+        },
+
+        eliminarPartida(idx) {
+            this.partidas.splice(idx, 1);
+            this.calcularTotales();
+        },
+
+        calcularSubtotal(p) {
+            const cant = parseFloat(p.cantidad) || 0;
+            const pu = parseFloat(p.precio_unitario) || 0;
+            p.subtotal = Math.round(cant * pu * 100) / 100;
+            this.calcularTotales();
+        },
+
+        calcularTotales() {
+            this.subtotal = this.partidas.reduce((s, p) => s + (parseFloat(p.subtotal) || 0), 0);
+            const m = parseFloat(this.margen) || 0;
+            this.utilidad = Math.round(this.subtotal * m / 100 * 100) / 100;
+            this.total = Math.round((this.subtotal + this.utilidad) * 100) / 100;
+        },
+
+        async buscarEnBD() {
+            if (this.busquedaBD.length < 2) { this.resultadosBD = []; return; }
+            try {
+                const resp = await fetch(`/bd-costos/api/buscar/?q=${encodeURIComponent(this.busquedaBD)}`);
+                const data = await resp.json();
+                this.resultadosBD = data.items;
+            } catch (e) {
+                this.resultadosBD = [];
+            }
+        },
+
+        seleccionarDesdeDB(item) {
+            this.partidas.push({
+                codigo: item.codigo,
+                descripcion: item.descripcion,
+                unidad: item.unidad,
+                categoria: '',
+                cantidad: 1,
+                precio_unitario: item.precio,
+                subtotal: item.precio,
+            });
+            this.calcularTotales();
+            this.mostrarBuscador = false;
+            this.busquedaBD = '';
+            this.resultadosBD = [];
+        },
+
+        enviarFormulario() {
+            if (this.partidas.length === 0) {
+                alert('Debes agregar al menos una partida antes de guardar.');
+                return;
+            }
+            this.$el.submit();
+        },
+    };
+}
+</script>
+{% endblock %}

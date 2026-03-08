@@ -1,0 +1,6 @@
+Django==6.0.3
+python-decouple==3.8
+Pillow==12.1.1
+reportlab==4.4.10
+openpyxl==3.1.5
+# psycopg2 NO incluido — PythonAnywhere free usa SQLite

@@ -1,0 +1,392 @@
+{% extends 'base.html' %}
+{% block title %}{{ proyecto.codigo }} — {{ proyecto.nombre }}{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in" x-data="{ tabActivo: '{{ tab_activo }}', showOC: false, showFoto: false }"
+     @keydown.escape.window="showOC = false; showFoto = false">
+
+<!-- Header -->
+<div class="flex items-start justify-between mb-5 flex-wrap gap-4">
+    <div class="flex items-center gap-4">
+        <a href="/proyectos/" class="btn-secondary btn-sm"><i class="fas fa-arrow-left"></i></a>
+        <div>
+            <div class="flex items-center gap-3 mb-1">
+                <h1 class="text-xl font-bold text-white font-mono">{{ proyecto.codigo }}</h1>
+                {% if proyecto.estado == 'EN_EJECUCION' %}<span class="badge badge-blue"><i class="fas fa-play"></i> En ejecución</span>
+                {% elif proyecto.estado == 'PLANIFICACION' %}<span class="badge badge-yellow">Planificación</span>
+                {% elif proyecto.estado == 'PAUSADO' %}<span class="badge badge-gray">Pausado</span>
+                {% elif proyecto.estado == 'COMPLETADO' %}<span class="badge badge-green">Completado</span>
+                {% elif proyecto.estado == 'CANCELADO' %}<span class="badge badge-red">Cancelado</span>{% endif %}
+                {% if proyecto.esta_atrasado %}<span class="badge badge-red"><i class="fas fa-clock"></i> Atrasado</span>{% endif %}
+            </div>
+            <p class="text-sm" style="color: #475569;">{{ proyecto.nombre }} — {{ proyecto.cliente_nombre }}</p>
+        </div>
+    </div>
+    <div class="flex gap-2 flex-wrap">
+        {% if user.puede_editar_cotizaciones %}
+        {% if proyecto.estado == 'PLANIFICACION' %}
+        <form method="post" action="/proyectos/{{ proyecto.id }}/estado/">{% csrf_token %}<input type="hidden" name="estado" value="EN_EJECUCION">
+            <button class="btn-primary btn-sm"><i class="fas fa-play"></i> Iniciar</button>
+        </form>
+        {% elif proyecto.estado == 'EN_EJECUCION' %}
+        <form method="post" action="/proyectos/{{ proyecto.id }}/estado/">{% csrf_token %}<input type="hidden" name="estado" value="PAUSADO">
+            <button class="btn-secondary btn-sm"><i class="fas fa-pause"></i> Pausar</button>
+        </form>
+        <form method="post" action="/proyectos/{{ proyecto.id }}/estado/">{% csrf_token %}<input type="hidden" name="estado" value="COMPLETADO">
+            <button class="btn-success btn-sm" onclick="return confirm('¿Marcar como completado?')"><i class="fas fa-check"></i> Completar</button>
+        </form>
+        {% elif proyecto.estado == 'PAUSADO' %}
+        <form method="post" action="/proyectos/{{ proyecto.id }}/estado/">{% csrf_token %}<input type="hidden" name="estado" value="EN_EJECUCION">
+            <button class="btn-primary btn-sm"><i class="fas fa-play"></i> Reanudar</button>
+        </form>
+        {% endif %}
+        <button @click="showOC = true" class="btn-secondary btn-sm"><i class="fas fa-exchange-alt"></i> Orden de Cambio</button>
+        {% endif %}
+        <button @click="showFoto = true; tabActivo = 'fotos'" class="btn-secondary btn-sm">
+            <i class="fas fa-camera"></i> Subir Fotos
+        </button>
+    </div>
+</div>
+
+<!-- KPIs -->
+<div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+    <div class="metric-card p-4 text-center">
+        <div class="text-xs uppercase tracking-wider mb-1" style="color: #475569;">Avance</div>
+        <div class="font-mono text-2xl font-bold {% if proyecto.porcentaje_avance >= 80 %}text-green-400{% elif proyecto.porcentaje_avance >= 40 %}text-yellow-400{% else %}text-red-400{% endif %}">
+            {{ proyecto.porcentaje_avance }}%
+        </div>
+        <div class="progress-bar-track mt-2">
+            <div class="progress-bar-fill" style="width:{{ proyecto.porcentaje_avance }}%; background: {% if proyecto.porcentaje_avance >= 80 %}#22C55E{% elif proyecto.porcentaje_avance >= 40 %}#F59E0B{% else %}#EF4444{% endif %};"></div>
+        </div>
+    </div>
+    {% if user.puede_ver_costos %}
+    <div class="metric-card p-4 text-center">
+        <div class="text-xs uppercase tracking-wider mb-1" style="color: #475569;">Valor contrato</div>
+        <div class="font-mono text-lg font-bold text-white">${{ proyecto.valor_contrato|floatformat:0 }}</div>
+        <div class="text-xs mt-1" style="color: #334155;">{{ proyecto.moneda }}</div>
+    </div>
+    <div class="metric-card p-4 text-center">
+        <div class="text-xs uppercase tracking-wider mb-1" style="color: #475569;">Costo real</div>
+        <div class="font-mono text-lg font-bold text-slate-300">${{ proyecto.costo_real_total|floatformat:0 }}</div>
+    </div>
+    <div class="metric-card {% if proyecto.utilidad_real >= 0 %}verde{% else %}rojo{% endif %} p-4 text-center">
+        <div class="text-xs uppercase tracking-wider mb-1" style="color: #475569;">Utilidad</div>
+        <div class="font-mono text-lg font-bold {% if proyecto.utilidad_real >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
+            ${{ proyecto.utilidad_real|floatformat:0 }}
+        </div>
+        <div class="text-xs mt-0.5 {% if proyecto.utilidad_real >= 0 %}text-green-500{% else %}text-red-500{% endif %}">
+            {{ proyecto.margen_real_porcentaje }}%
+        </div>
+    </div>
+    {% else %}
+    <div class="metric-card p-4 text-center">
+        <div class="text-xs uppercase tracking-wider mb-1" style="color: #475569;">Inicio</div>
+        <div class="text-sm font-semibold text-white">{{ proyecto.fecha_inicio_planeada|date:"d/m/Y" }}</div>
+    </div>
+    <div class="metric-card p-4 text-center">
+        <div class="text-xs uppercase tracking-wider mb-1" style="color: #475569;">Fin planeado</div>
+        <div class="text-sm font-semibold {% if proyecto.esta_atrasado %}text-red-400{% else %}text-white{% endif %}">
+            {{ proyecto.fecha_fin_planeada|date:"d/m/Y" }}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Tabs -->
+<div class="flex gap-1 mb-5 border-b" style="border-color: rgba(255,255,255,0.06);">
+    <button @click="tabActivo='resumen'" :class="tabActivo=='resumen' ? 'text-white border-b-2 border-blue-500' : 'text-slate-500'"
+            class="px-4 py-2.5 text-sm font-medium transition-colors">
+        <i class="fas fa-chart-pie mr-1.5"></i>Resumen
+    </button>
+    <button @click="tabActivo='partidas'" :class="tabActivo=='partidas' ? 'text-white border-b-2 border-blue-500' : 'text-slate-500'"
+            class="px-4 py-2.5 text-sm font-medium transition-colors">
+        <i class="fas fa-list mr-1.5"></i>Partidas ({{ partidas.count }})
+    </button>
+    <button @click="tabActivo='fotos'" :class="tabActivo=='fotos' ? 'text-white border-b-2 border-blue-500' : 'text-slate-500'"
+            class="px-4 py-2.5 text-sm font-medium transition-colors">
+        <i class="fas fa-camera mr-1.5"></i>Fotos ({{ fotos.count }})
+    </button>
+    {% if user.puede_ver_costos %}
+    <button @click="tabActivo='cambios'" :class="tabActivo=='cambios' ? 'text-white border-b-2 border-blue-500' : 'text-slate-500'"
+            class="px-4 py-2.5 text-sm font-medium transition-colors">
+        <i class="fas fa-exchange-alt mr-1.5"></i>Cambios ({{ ordenes_cambio.count }})
+    </button>
+    {% endif %}
+</div>
+
+<!-- TAB: Resumen -->
+<div x-show="tabActivo === 'resumen'">
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div class="card-glass p-5">
+            <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Información general</h3>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between"><span style="color:#475569;">Cliente:</span><span class="text-white font-medium">{{ proyecto.cliente_nombre }}</span></div>
+                {% if proyecto.ubicacion %}<div class="flex justify-between"><span style="color:#475569;">Ubicación:</span><span class="text-white">{{ proyecto.ubicacion }}</span></div>{% endif %}
+                <div class="flex justify-between"><span style="color:#475569;">Inicio planeado:</span><span class="font-mono text-white">{{ proyecto.fecha_inicio_planeada|date:"d/m/Y" }}</span></div>
+                {% if proyecto.fecha_inicio_real %}<div class="flex justify-between"><span style="color:#475569;">Inicio real:</span><span class="font-mono text-white">{{ proyecto.fecha_inicio_real|date:"d/m/Y" }}</span></div>{% endif %}
+                <div class="flex justify-between"><span style="color:#475569;">Fin planeado:</span><span class="font-mono {% if proyecto.esta_atrasado %}text-red-400{% else %}text-white{% endif %}">{{ proyecto.fecha_fin_planeada|date:"d/m/Y" }}</span></div>
+                <div class="flex justify-between"><span style="color:#475569;">Gerente:</span><span class="text-white">{{ proyecto.gerente_proyecto.get_full_name|default:proyecto.gerente_proyecto.username }}</span></div>
+                {% if proyecto.supervisor %}<div class="flex justify-between"><span style="color:#475569;">Supervisor:</span><span class="text-white">{{ proyecto.supervisor.get_full_name|default:proyecto.supervisor.username }}</span></div>{% endif %}
+            </div>
+        </div>
+        {% if proyecto.descripcion %}
+        <div class="card-glass p-5">
+            <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Descripción</h3>
+            <p class="text-sm text-slate-300 leading-relaxed">{{ proyecto.descripcion }}</p>
+            {% if proyecto.cotizacion_origen %}
+            <div class="mt-3 pt-3 border-t" style="border-color: rgba(255,255,255,0.06);">
+                <a href="/cotizaciones/{{ proyecto.cotizacion_origen.id }}/" class="text-blue-400 text-sm hover:underline">
+                    <i class="fas fa-file-invoice-dollar mr-1"></i>
+                    Ver cotización origen: {{ proyecto.cotizacion_origen.numero }}
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- TAB: Partidas -->
+<div x-show="tabActivo === 'partidas'">
+    <div class="card-glass overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="table-dark">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Descripción</th>
+                        <th>Und.</th>
+                        <th class="text-right">Cant. Pres.</th>
+                        <th class="text-right">Cant. Ejec.</th>
+                        <th class="text-center">% Avance</th>
+                        {% if user.puede_ver_costos %}
+                        <th class="text-right">Costo Pres.</th>
+                        <th class="text-right">Costo Real</th>
+                        <th class="text-right">Variación</th>
+                        {% endif %}
+                        <th>Estado</th>
+                        <th class="text-center">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in partidas %}
+                    <tr>
+                        <td class="font-mono text-xs text-slate-500">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="text-sm text-white">{{ p.descripcion }}</div>
+                            {% if p.codigo %}<div class="font-mono text-xs text-blue-400">{{ p.codigo }}</div>{% endif %}
+                        </td>
+                        <td class="font-mono text-xs text-slate-400">{{ p.unidad }}</td>
+                        <td class="text-right font-mono text-sm text-slate-300">{{ p.cantidad_presupuestada|floatformat:2 }}</td>
+                        <td class="text-right font-mono text-sm text-white">{{ p.cantidad_ejecutada|floatformat:2 }}</td>
+                        <td class="text-center">
+                            <div class="flex items-center gap-2">
+                                <div class="progress-bar-track flex-1" style="height: 4px;">
+                                    <div class="progress-bar-fill" style="width: {{ p.porcentaje_avance }}%; background: {% if p.porcentaje_avance >= 100 %}#22C55E{% elif p.porcentaje_avance >= 50 %}#F59E0B{% else %}#0066FF{% endif %};"></div>
+                                </div>
+                                <span class="font-mono text-xs {% if p.porcentaje_avance >= 100 %}text-green-400{% else %}text-white{% endif %}">{{ p.porcentaje_avance }}%</span>
+                            </div>
+                        </td>
+                        {% if user.puede_ver_costos %}
+                        <td class="text-right font-mono text-sm text-slate-300">${{ p.costo_presupuestado|floatformat:0 }}</td>
+                        <td class="text-right font-mono text-sm text-white">${{ p.costo_real|floatformat:0 }}</td>
+                        <td class="text-right">
+                            <span class="font-mono text-xs {% if p.variacion_costo <= 0 %}text-green-400{% else %}text-red-400{% endif %}">
+                                {% if p.variacion_costo > 0 %}+{% endif %}{{ p.variacion_costo_porcentaje }}%
+                            </span>
+                        </td>
+                        {% endif %}
+                        <td>
+                            {% if p.estado == 'COMPLETADA' %}<span class="badge badge-green">Completa</span>
+                            {% elif p.estado == 'EN_PROCESO' %}<span class="badge badge-blue">En proceso</span>
+                            {% else %}<span class="badge badge-gray">Sin iniciar</span>{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if proyecto.estado == 'EN_EJECUCION' or proyecto.estado == 'PAUSADO' %}
+                                {% if p.estado != 'COMPLETADA' %}
+                                <a href="/proyectos/{{ proyecto.id }}/partida/{{ p.id }}/avance/"
+                                   class="btn-primary btn-sm">
+                                    <i class="fas fa-plus text-xs"></i> Avance
+                                </a>
+                                {% else %}
+                                <span class="text-xs" style="color: #334155;">—</span>
+                                {% endif %}
+                            {% else %}
+                            <span class="text-xs" style="color: #334155;">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- TAB: Fotos -->
+<div x-show="tabActivo === 'fotos'">
+    <!-- Form subir fotos -->
+    <div x-show="showFoto" x-transition class="card-glass p-4 mb-4" style="border-color: rgba(0,102,255,0.2);">
+        <form method="post" action="/proyectos/{{ proyecto.id }}/fotos/" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="input-label">Descripción</label>
+                    <input type="text" name="descripcion" class="input-field"
+                           placeholder="Ej: Avance estructura, instalación tubería..." value="Foto de avance">
+                </div>
+                <div>
+                    <label class="input-label">Fotos (máx. 10, 5MB c/u)</label>
+                    <input type="file" name="fotos" multiple accept="image/*"
+                           class="input-field" style="padding: 7px;">
+                </div>
+            </div>
+            <div class="flex gap-2 mt-3">
+                <button type="button" @click="showFoto = false" class="btn-secondary btn-sm">Cancelar</button>
+                <button type="submit" class="btn-primary btn-sm"><i class="fas fa-upload"></i> Subir</button>
+            </div>
+        </form>
+    </div>
+
+    {% if fotos %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+        {% for foto in fotos %}
+        <div class="card-glass overflow-hidden group">
+            <a href="{{ foto.imagen.url }}" target="_blank">
+                <div class="relative" style="height: 160px; overflow: hidden;">
+                    <img src="{{ foto.imagen.url }}" alt="{{ foto.descripcion }}"
+                         style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;"
+                         class="group-hover:scale-105">
+                </div>
+            </a>
+            <div class="p-2">
+                <p class="text-xs text-white font-medium truncate">{{ foto.descripcion }}</p>
+                <p class="text-xs mt-0.5" style="color: #475569;">{{ foto.fecha|date:"d/m/Y" }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card-glass p-12 text-center">
+        <i class="fas fa-camera text-3xl mb-3" style="color: #334155;"></i>
+        <p class="text-white font-medium mb-1">Sin fotos aún</p>
+        <p class="text-sm" style="color: #475569;">Documenta el avance del proyecto con fotos.</p>
+        <button @click="showFoto = true" class="btn-primary mt-4 inline-flex">
+            <i class="fas fa-camera"></i> Subir fotos
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- TAB: Órdenes de Cambio -->
+{% if user.puede_ver_costos %}
+<div x-show="tabActivo === 'cambios'">
+    <div class="card-glass overflow-hidden">
+        {% if ordenes_cambio %}
+        <table class="table-dark">
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>Descripción</th>
+                    <th class="text-right">Impacto $</th>
+                    <th class="text-right">Impacto días</th>
+                    <th>Estado</th>
+                    <th>Solicitado por</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for oc in ordenes_cambio %}
+                <tr>
+                    <td class="font-mono text-sm font-semibold text-blue-400">OC-{{ oc.numero|stringformat:"03d" }}</td>
+                    <td>
+                        <div class="text-sm text-white">{{ oc.descripcion|truncatechars:50 }}</div>
+                        <div class="text-xs" style="color: #475569;">{{ oc.fecha|date:"d/m/Y" }}</div>
+                    </td>
+                    <td class="text-right font-mono text-sm {% if oc.impacto_costo > 0 %}text-red-400{% elif oc.impacto_costo < 0 %}text-green-400{% else %}text-slate-500{% endif %}">
+                        {% if oc.impacto_costo > 0 %}+{% endif %}${{ oc.impacto_costo|floatformat:2 }}
+                    </td>
+                    <td class="text-right font-mono text-sm text-slate-400">
+                        {% if oc.impacto_tiempo_dias != 0 %}
+                        {% if oc.impacto_tiempo_dias > 0 %}+{% endif %}{{ oc.impacto_tiempo_dias }} días
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if oc.estado == 'APROBADA' %}<span class="badge badge-green">Aprobada</span>
+                        {% elif oc.estado == 'RECHAZADA' %}<span class="badge badge-red">Rechazada</span>
+                        {% else %}<span class="badge badge-yellow">Pendiente</span>{% endif %}
+                    </td>
+                    <td class="text-sm text-slate-400">{{ oc.solicitado_por.get_full_name|default:oc.solicitado_por.username }}</td>
+                    <td class="text-center">
+                        {% if oc.estado == 'PENDIENTE' and user.puede_aprobar_cambios %}
+                        <form method="post" action="/proyectos/{{ proyecto.id }}/orden-cambio/{{ oc.id }}/aprobar/" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="accion" value="aprobar">
+                            <button class="btn-success btn-sm mr-1" type="submit"><i class="fas fa-check text-xs"></i></button>
+                        </form>
+                        <form method="post" action="/proyectos/{{ proyecto.id }}/orden-cambio/{{ oc.id }}/aprobar/" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="accion" value="rechazar">
+                            <button class="btn-danger btn-sm" type="submit"><i class="fas fa-times text-xs"></i></button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-10 text-center" style="color: #475569;">Sin órdenes de cambio.</div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+
+<!-- Modal: Nueva Orden de Cambio (DENTRO del scope x-data) -->
+<div x-show="showOC" x-cloak class="modal-overlay"
+     @click.self="showOC = false"
+     @keydown.escape.window="showOC = false">
+    <div class="modal-box">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-white">
+                <i class="fas fa-exchange-alt text-blue-400 mr-2"></i>Nueva Orden de Cambio
+            </h2>
+            <button type="button" @click="showOC = false"
+                    class="text-slate-500 hover:text-white transition-colors p-1">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        <form method="post" action="/proyectos/{{ proyecto.id }}/orden-cambio/">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="input-label">Descripción del cambio <span class="text-red-400">*</span></label>
+                <textarea name="descripcion" rows="3" class="input-field" placeholder="¿Qué se va a cambiar?" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="input-label">Justificación</label>
+                <textarea name="justificacion" rows="2" class="input-field" placeholder="¿Por qué es necesario este cambio?"></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                    <label class="input-label">Impacto en costo ($)</label>
+                    <input type="number" name="impacto_costo" class="input-field font-mono" placeholder="0.00" step="0.01" value="0">
+                </div>
+                <div>
+                    <label class="input-label">Impacto en tiempo (días)</label>
+                    <input type="number" name="impacto_tiempo_dias" class="input-field font-mono" placeholder="0" value="0">
+                </div>
+            </div>
+            <div class="flex gap-3 justify-end">
+                <button type="button" @click="showOC = false" class="btn-secondary">Cancelar</button>
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-paper-plane"></i> Solicitar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+</div>{# cierra el div x-data principal #}
+
+{% endblock %}

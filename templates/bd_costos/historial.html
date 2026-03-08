@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}Historial de Precios — {{ item.codigo }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto animate-fade-in">
+
+<div class="flex items-center gap-4 mb-6">
+    <a href="/bd-costos/" class="btn-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+    <div>
+        <h1 class="text-xl font-bold text-white">Historial de Precios</h1>
+        <p style="color: #475569; font-size: 13px;">
+            <span class="font-mono text-blue-400">{{ item.codigo }}</span> — {{ item.descripcion }}
+        </p>
+    </div>
+</div>
+
+<!-- Stats rápidos -->
+<div class="grid grid-cols-3 gap-4 mb-5">
+    <div class="card-glass p-4 text-center">
+        <div class="text-xs uppercase tracking-wider mb-1" style="color: #475569;">Precio actual</div>
+        <div class="font-mono text-xl font-bold text-green-400">
+            {{ item.precio_actual|floatformat:4 }} {{ item.moneda }}
+        </div>
+    </div>
+    <div class="card-glass p-4 text-center">
+        <div class="text-xs uppercase tracking-wider mb-1" style="color: #475569;">Registros</div>
+        <div class="font-mono text-xl font-bold text-white">{{ historial.count }}</div>
+    </div>
+    <div class="card-glass p-4 text-center">
+        <div class="text-xs uppercase tracking-wider mb-1" style="color: #475569;">Última actualización</div>
+        <div class="text-sm font-semibold text-white">{{ item.fecha_actualizacion|date:"d/m/Y" }}</div>
+    </div>
+</div>
+
+<!-- Gráfica de evolución -->
+{% if historial.count > 1 %}
+<div class="card-glass p-5 mb-5">
+    <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+        <i class="fas fa-chart-line mr-2"></i>Evolución del precio
+    </h2>
+    <canvas id="graficaHistorial" height="80"></canvas>
+</div>
+{% endif %}
+
+<!-- Tabla historial -->
+<div class="card-glass overflow-hidden">
+    <div class="p-4 border-b" style="border-color: rgba(255,255,255,0.06);">
+        <h2 class="font-semibold text-white flex items-center gap-2">
+            <i class="fas fa-history text-blue-400"></i>
+            Registro de cambios
+        </h2>
+    </div>
+    {% if historial %}
+    <table class="table-dark">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th class="text-right">Precio</th>
+                <th>Moneda</th>
+                <th>Registrado por</th>
+                <th>Observación</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reg in historial %}
+            <tr>
+                <td class="font-mono text-sm">{{ reg.fecha|date:"d/m/Y" }}</td>
+                <td class="text-right font-mono font-semibold text-green-400">
+                    {{ reg.precio|floatformat:4 }}
+                </td>
+                <td>
+                    <span class="badge badge-gray">{{ reg.moneda }}</span>
+                </td>
+                <td class="text-sm">{{ reg.usuario.get_full_name|default:reg.usuario.username|default:"—" }}</td>
+                <td class="text-sm" style="color: #64748B;">{{ reg.observacion|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="p-10 text-center" style="color: #475569;">Sin registros de cambios de precio.</div>
+    {% endif %}
+</div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if historial.count > 1 %}
+<script>
+const datos = {{ datos_grafica|safe }};
+const ctx = document.getElementById('graficaHistorial').getContext('2d');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: datos.map(d => d.fecha),
+        datasets: [{
+            label: 'Precio ({{ item.moneda }})',
+            data: datos.map(d => d.precio),
+            borderColor: '#0066FF',
+            backgroundColor: 'rgba(0, 102, 255, 0.1)',
+            fill: true,
+            tension: 0.3,
+            pointBackgroundColor: '#0066FF',
+            pointRadius: 4,
+            pointHoverRadius: 6,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { labels: { color: '#94A3B8', font: { family: 'Outfit' } } },
+        },
+        scales: {
+            x: {
+                ticks: { color: '#475569', font: { family: 'JetBrains Mono', size: 11 } },
+                grid: { color: 'rgba(255,255,255,0.04)' }
+            },
+            y: {
+                ticks: { color: '#94A3B8', font: { family: 'JetBrains Mono', size: 11 } },
+                grid: { color: 'rgba(255,255,255,0.04)' }
+            }
+        }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

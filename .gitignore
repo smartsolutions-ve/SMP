@@ -1,0 +1,51 @@
+# Entorno virtual
+env/
+venv/
+smart_pm_env/
+*.egg-info/
+
+# Archivos de configuracion sensibles
+.env
+*.env
+
+# Base de datos
+db.sqlite3
+*.db
+
+# Archivos generados por Django
+staticfiles/
+media/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Cache y compilados
+*.pyc
+*.pycache
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Temporales
+/tmp/
+*.tmp
+*.bak
+
+# Cobertura de tests
+.coverage
+htmlcov/

@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+{% block title %}{{ cot.numero }}{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in" x-data="{ showConvertir: false }">
+
+<!-- Header -->
+<div class="flex items-start justify-between mb-6 flex-wrap gap-4">
+    <div class="flex items-center gap-4">
+        <a href="/cotizaciones/" class="btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+            <div class="flex items-center gap-3 mb-1">
+                <h1 class="text-xl font-bold text-white font-mono">{{ cot.numero }}</h1>
+                <span class="badge badge-{{ cot.estado_color }}">{{ cot.get_estado_display }}</span>
+                {% if cot.esta_vencida %}
+                <span class="badge badge-red"><i class="fas fa-clock"></i> Vencida</span>
+                {% endif %}
+            </div>
+            <p style="color: #475569; font-size: 13px;">
+                {{ cot.nombre_proyecto }} — {{ cot.cliente_nombre }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="flex gap-2 flex-wrap">
+        <a href="/cotizaciones/{{ cot.id }}/pdf/" target="_blank" class="btn-secondary">
+            <i class="fas fa-file-pdf text-red-400"></i> PDF
+        </a>
+
+        {% if cot.puede_editarse and user.puede_editar_cotizaciones %}
+        <a href="/cotizaciones/{{ cot.id }}/editar/" class="btn-secondary">
+            <i class="fas fa-edit"></i> Editar
+        </a>
+        {% endif %}
+
+        {% if user.puede_editar_cotizaciones %}
+        <form method="post" action="/cotizaciones/{{ cot.id }}/duplicar/" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn-secondary">
+                <i class="fas fa-copy"></i> Duplicar
+            </button>
+        </form>
+        {% endif %}
+
+        <!-- Cambios de estado -->
+        {% if user.puede_editar_cotizaciones %}
+        {% if cot.estado == 'BORRADOR' %}
+        <form method="post" action="/cotizaciones/{{ cot.id }}/estado/">
+            {% csrf_token %}
+            <input type="hidden" name="estado" value="ENVIADA">
+            <button type="submit" class="btn-primary"
+                    onclick="return confirm('¿Marcar como enviada al cliente?')">
+                <i class="fas fa-paper-plane"></i> Marcar Enviada
+            </button>
+        </form>
+        {% elif cot.estado == 'ENVIADA' %}
+        <form method="post" action="/cotizaciones/{{ cot.id }}/estado/" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="estado" value="APROBADA">
+            <button type="submit" class="btn-success">
+                <i class="fas fa-check"></i> Aprobar
+            </button>
+        </form>
+        <form method="post" action="/cotizaciones/{{ cot.id }}/estado/" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="estado" value="RECHAZADA">
+            <button type="submit" class="btn-danger"
+                    onclick="return confirm('¿Marcar como rechazada?')">
+                <i class="fas fa-times"></i> Rechazar
+            </button>
+        </form>
+        {% elif cot.estado == 'APROBADA' %}
+        <button @click="showConvertir = true" class="btn-primary">
+            <i class="fas fa-hard-hat"></i> Convertir a Proyecto
+        </button>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Info en 2 columnas -->
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-5">
+
+    <!-- Datos del cliente -->
+    <div class="card-glass p-5">
+        <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
+            <i class="fas fa-user mr-2 text-blue-400"></i>Datos del Cliente
+        </h2>
+        <div class="space-y-2">
+            <div class="flex justify-between">
+                <span class="text-sm" style="color:#475569;">Nombre:</span>
+                <span class="text-sm font-medium text-white">{{ cot.cliente_nombre }}</span>
+            </div>
+            {% if cot.cliente_rif %}
+            <div class="flex justify-between">
+                <span class="text-sm" style="color:#475569;">RIF:</span>
+                <span class="text-sm font-mono text-white">{{ cot.cliente_rif }}</span>
+            </div>
+            {% endif %}
+            {% if cot.cliente_telefono %}
+            <div class="flex justify-between">
+                <span class="text-sm" style="color:#475569;">Teléfono:</span>
+                <span class="text-sm text-white">{{ cot.cliente_telefono }}</span>
+            </div>
+            {% endif %}
+            {% if cot.cliente_email %}
+            <div class="flex justify-between">
+                <span class="text-sm" style="color:#475569;">Email:</span>
+                <span class="text-sm text-white">{{ cot.cliente_email }}</span>
+            </div>
+            {% endif %}
+            {% if cot.cliente_contacto %}
+            <div class="flex justify-between">
+                <span class="text-sm" style="color:#475569;">Contacto:</span>
+                <span class="text-sm text-white">{{ cot.cliente_contacto }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Datos del proyecto -->
+    <div class="card-glass p-5">
+        <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
+            <i class="fas fa-hard-hat mr-2 text-yellow-400"></i>Datos del Proyecto
+        </h2>
+        <div class="space-y-2">
+            <div class="flex justify-between">
+                <span class="text-sm" style="color:#475569;">Proyecto:</span>
+                <span class="text-sm font-medium text-white">{{ cot.nombre_proyecto }}</span>
+            </div>
+            {% if cot.ubicacion %}
+            <div class="flex justify-between">
+                <span class="text-sm" style="color:#475569;">Ubicación:</span>
+                <span class="text-sm text-white">{{ cot.ubicacion }}</span>
+            </div>
+            {% endif %}
+            <div class="flex justify-between">
+                <span class="text-sm" style="color:#475569;">Fecha creación:</span>
+                <span class="text-sm font-mono text-white">{{ cot.fecha_creacion|date:"d/m/Y" }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-sm" style="color:#475569;">Válida hasta:</span>
+                <span class="text-sm font-mono {% if cot.esta_vencida %}text-red-400{% else %}text-white{% endif %}">
+                    {{ cot.fecha_vencimiento|date:"d/m/Y" }}
+                </span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-sm" style="color:#475569;">Creada por:</span>
+                <span class="text-sm text-white">{{ cot.creado_por.get_full_name|default:cot.creado_por.username }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Descripción -->
+{% if cot.descripcion %}
+<div class="card-glass p-5 mb-5">
+    <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">
+        <i class="fas fa-clipboard mr-2"></i>Alcance del Trabajo
+    </h2>
+    <p class="text-sm text-slate-300 leading-relaxed">{{ cot.descripcion }}</p>
+</div>
+{% endif %}
+
+<!-- Tabla de partidas -->
+<div class="card-glass overflow-hidden mb-5">
+    <div class="p-4 border-b" style="border-color: rgba(255,255,255,0.06);">
+        <h2 class="font-semibold text-white flex items-center gap-2">
+            <i class="fas fa-list text-blue-400"></i>
+            Partidas ({{ partidas.count }})
+        </h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="table-dark">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Código</th>
+                    <th>Descripción</th>
+                    <th>Categoría</th>
+                    <th>Unidad</th>
+                    <th class="text-right">Cantidad</th>
+                    {% if user.puede_ver_costos %}
+                    <th class="text-right">P. Unit.</th>
+                    <th class="text-right">Subtotal</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% regroup partidas by categoria as partidas_agrupadas %}
+                {% for grupo in partidas_agrupadas %}
+                {% if grupo.grouper %}
+                <tr>
+                    <td colspan="{% if user.puede_ver_costos %}8{% else %}6{% endif %}"
+                        style="background: rgba(0,102,255,0.06); color: #0066FF; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 8px 16px;">
+                        <i class="fas fa-folder mr-2"></i>{{ grupo.grouper }}
+                    </td>
+                </tr>
+                {% endif %}
+                {% for p in grupo.list %}
+                <tr>
+                    <td class="font-mono text-xs text-slate-500">{{ forloop.parentloop.counter }}.{{ forloop.counter }}</td>
+                    <td class="font-mono text-xs text-blue-400">{{ p.codigo|default:"—" }}</td>
+                    <td class="text-sm text-white max-w-xs">{{ p.descripcion }}</td>
+                    <td class="text-xs" style="color:#475569;">{{ p.categoria|default:"—" }}</td>
+                    <td class="font-mono text-xs text-slate-400">{{ p.unidad }}</td>
+                    <td class="text-right font-mono text-sm text-white">{{ p.cantidad|floatformat:2 }}</td>
+                    {% if user.puede_ver_costos %}
+                    <td class="text-right font-mono text-sm text-slate-300">${{ p.precio_unitario|floatformat:2 }}</td>
+                    <td class="text-right font-mono font-semibold text-green-400">${{ p.subtotal|floatformat:2 }}</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+                {% endfor %}
+            </tbody>
+            {% if user.puede_ver_costos %}
+            <tfoot>
+                <tr style="border-top: 2px solid rgba(255,255,255,0.1);">
+                    <td colspan="7" class="text-right font-medium" style="color:#94A3B8; padding: 12px 16px;">
+                        Subtotal:
+                    </td>
+                    <td class="text-right font-mono font-bold text-white" style="padding: 12px 16px;">
+                        ${{ cot.subtotal|floatformat:2 }}
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="7" class="text-right" style="color:#94A3B8; padding: 4px 16px; font-size: 13px;">
+                        Utilidad ({{ cot.margen_utilidad_porcentaje }}%):
+                    </td>
+                    <td class="text-right font-mono text-yellow-400" style="padding: 4px 16px; font-size: 13px;">
+                        ${{ cot.utilidad_monto|floatformat:2 }}
+                    </td>
+                </tr>
+                <tr style="background: rgba(0,102,255,0.08);">
+                    <td colspan="7" class="text-right font-bold text-white" style="padding: 14px 16px; font-size: 16px;">
+                        TOTAL {{ cot.moneda }}:
+                    </td>
+                    <td class="text-right font-mono font-bold" style="padding: 14px 16px; font-size: 18px; color: #22C55E;">
+                        ${{ cot.total|floatformat:2 }}
+                    </td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+
+<!-- Términos y condiciones -->
+{% if cot.terminos_condiciones %}
+<div class="card-glass p-5 mb-5">
+    <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
+        <i class="fas fa-file-contract mr-2"></i>Términos y Condiciones
+    </h2>
+    <pre class="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed" style="font-family: 'Outfit', sans-serif;">{{ cot.terminos_condiciones }}</pre>
+</div>
+{% endif %}
+
+<!-- Notas internas (solo staff) -->
+{% if user.puede_ver_costos and cot.notas_internas %}
+<div class="card-glass p-5" style="border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.04);">
+    <h2 class="text-sm font-semibold uppercase tracking-wider mb-2" style="color: #F59E0B;">
+        <i class="fas fa-sticky-note mr-2"></i>Notas internas (no visible al cliente)
+    </h2>
+    <p class="text-sm text-yellow-300">{{ cot.notas_internas }}</p>
+</div>
+{% endif %}
+
+</div>
+
+<!-- Modal: Convertir a proyecto -->
+<div x-show="showConvertir" class="modal-overlay" x-cloak>
+    <div class="modal-box">
+        <h2 class="text-lg font-bold text-white mb-1">
+            <i class="fas fa-hard-hat text-blue-400 mr-2"></i>
+            Convertir a Proyecto
+        </h2>
+        <p class="text-sm mb-5" style="color: #64748B;">
+            {{ cot.numero }} — {{ cot.nombre_proyecto }}<br>
+            Valor del contrato: <span class="text-green-400 font-mono">${{ cot.total|floatformat:2 }}</span>
+        </p>
+        <form method="post" action="/cotizaciones/{{ cot.id }}/convertir/">
+            {% csrf_token %}
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="input-label">Fecha de inicio <span class="text-red-400">*</span></label>
+                    <input type="date" name="fecha_inicio" class="input-field" required>
+                </div>
+                <div>
+                    <label class="input-label">Fecha de fin planeada <span class="text-red-400">*</span></label>
+                    <input type="date" name="fecha_fin" class="input-field" required>
+                </div>
+            </div>
+            <div class="alert alert-info mb-4">
+                <i class="fas fa-info-circle"></i>
+                Se crearán {{ partidas.count }} partidas en el proyecto con los valores de esta cotización.
+            </div>
+            <div class="flex gap-3 justify-end">
+                <button type="button" @click="showConvertir = false" class="btn-secondary">Cancelar</button>
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-hard-hat"></i> Crear Proyecto
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

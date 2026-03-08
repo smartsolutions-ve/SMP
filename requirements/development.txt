@@ -1,0 +1,2 @@
+-r base.txt
+# SQLite viene incluido con Python, no requiere paquete extra
