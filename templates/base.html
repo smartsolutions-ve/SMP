@@ -605,6 +605,18 @@
             <span>BD de Costos</span>
         </a>
 
+        <a href="/activos/" class="nav-item flex items-center gap-3 px-3 py-2.5 mb-1 rounded-r-xl text-sm {% if 'activos' in request.path %}active{% endif %}">
+            <i class="fas fa-cogs w-4 text-center" style="color: {% if 'activos' in request.path %}#0066FF{% else %}var(--nav-icon){% endif %};"></i>
+            <span>Activos</span>
+        </a>
+
+        {% if user.puede_ver_costos %}
+        <a href="/nomina/" class="nav-item flex items-center gap-3 px-3 py-2.5 mb-1 rounded-r-xl text-sm {% if 'nomina' in request.path %}active{% endif %}">
+            <i class="fas fa-users-cog w-4 text-center" style="color: {% if 'nomina' in request.path %}#0066FF{% else %}var(--nav-icon){% endif %};"></i>
+            <span>Nómina HH</span>
+        </a>
+        {% endif %}
+
         <div class="text-xs font-semibold uppercase mb-2 mt-4 px-3" style="color: var(--nav-section); letter-spacing: 1px;">Análisis</div>
 
         <a href="/reportes/" class="nav-item flex items-center gap-3 px-3 py-2.5 mb-1 rounded-r-xl text-sm {% if 'reportes' in request.path %}active{% endif %}">

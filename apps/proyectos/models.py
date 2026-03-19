@@ -39,6 +39,15 @@ class Proyecto(models.Model):
         verbose_name='Cotización de origen'
     )
 
+    # Activo asociado (opcional)
+    activo_cliente = models.ForeignKey(
+        'activos.ActivoCliente',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='proyectos',
+        verbose_name='Equipo/Activo asociado'
+    )
+
     codigo = models.CharField('Código', max_length=20, unique=True)
     nombre = models.CharField('Nombre del proyecto', max_length=200)
     descripcion = models.TextField('Descripción', blank=True)

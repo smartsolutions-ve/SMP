@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% block title %}{{ accion }} Activo{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto animate-fade-in">
+
+<!-- Header -->
+<div class="flex items-center gap-4 mb-6">
+    <a href="/activos/" class="btn-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+    <div>
+        <h1 class="text-xl font-bold" style="color: var(--text-primary);">
+            {{ accion }} Equipo / Activo
+        </h1>
+        {% if activo %}
+        <p style="color: var(--text-secondary); font-size: 13px;">{{ activo.codigo_equipo }} — {{ activo.nombre }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Identificación -->
+    <div class="card-glass p-6 mb-4">
+        <h2 class="text-sm font-semibold uppercase tracking-wider mb-4" style="color: var(--text-muted);">
+            <i class="fas fa-tag mr-2"></i>Identificación del Equipo
+        </h2>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="input-label">Código / TAG <span class="text-red-400">*</span></label>
+                <input type="text" name="codigo_equipo" class="input-field font-mono"
+                       placeholder="BOM-001" maxlength="50"
+                       value="{{ activo.codigo_equipo|default:'' }}" required>
+            </div>
+            <div>
+                <label class="input-label">Tipo <span class="text-red-400">*</span></label>
+                <select name="tipo" class="input-field" required>
+                    {% for val, label in tipos %}
+                    <option value="{{ val }}" {% if activo.tipo == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="mt-4">
+            <label class="input-label">Nombre del equipo <span class="text-red-400">*</span></label>
+            <input type="text" name="nombre" class="input-field"
+                   placeholder="Bomba centrífuga de agua caliente"
+                   maxlength="200"
+                   value="{{ activo.nombre|default:'' }}" required>
+        </div>
+        <div class="grid grid-cols-3 gap-4 mt-4">
+            <div>
+                <label class="input-label">Marca</label>
+                <input type="text" name="marca" class="input-field"
+                       placeholder="Grundfos" maxlength="100"
+                       value="{{ activo.marca|default:'' }}">
+            </div>
+            <div>
+                <label class="input-label">Modelo</label>
+                <input type="text" name="modelo" class="input-field"
+                       placeholder="CR-32" maxlength="100"
+                       value="{{ activo.modelo|default:'' }}">
+            </div>
+            <div>
+                <label class="input-label">Serial</label>
+                <input type="text" name="serial" class="input-field font-mono"
+                       placeholder="SN-123456" maxlength="100"
+                       value="{{ activo.serial|default:'' }}">
+            </div>
+        </div>
+    </div>
+
+    <!-- Cliente y Ubicación -->
+    <div class="card-glass p-6 mb-4">
+        <h2 class="text-sm font-semibold uppercase tracking-wider mb-4" style="color: var(--text-muted);">
+            <i class="fas fa-map-marker-alt mr-2"></i>Cliente y Ubicación
+        </h2>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="input-label">Cliente propietario <span class="text-red-400">*</span></label>
+                <input type="text" name="cliente_nombre" class="input-field"
+                       placeholder="Nombre del cliente"
+                       maxlength="200"
+                       value="{{ activo.cliente_nombre|default:'' }}" required>
+            </div>
+            <div>
+                <label class="input-label">RIF del cliente</label>
+                <input type="text" name="cliente_rif" class="input-field font-mono"
+                       placeholder="J-12345678-9" maxlength="15"
+                       value="{{ activo.cliente_rif|default:'' }}">
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mt-4">
+            <div>
+                <label class="input-label">Ubicación / Planta</label>
+                <input type="text" name="ubicacion" class="input-field"
+                       placeholder="Planta Caracas" maxlength="200"
+                       value="{{ activo.ubicacion|default:'' }}">
+            </div>
+            <div>
+                <label class="input-label">Área / Sección</label>
+                <input type="text" name="area" class="input-field"
+                       placeholder="Sala de calderas" maxlength="100"
+                       value="{{ activo.area|default:'' }}">
+            </div>
+        </div>
+    </div>
+
+    <!-- Estado y Mantenimiento -->
+    <div class="card-glass p-6 mb-4">
+        <h2 class="text-sm font-semibold uppercase tracking-wider mb-4" style="color: var(--text-muted);">
+            <i class="fas fa-wrench mr-2"></i>Estado y Mantenimiento
+        </h2>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="input-label">Estado</label>
+                <select name="estado" class="input-field">
+                    {% for val, label in estados %}
+                    <option value="{{ val }}" {% if activo.estado == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="input-label">Fecha de instalación</label>
+                <input type="date" name="fecha_instalacion" class="input-field"
+                       value="{{ activo.fecha_instalacion|date:'Y-m-d'|default:'' }}">
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mt-4">
+            <div>
+                <label class="input-label">Frecuencia de mtto. (días)</label>
+                <input type="number" name="frecuencia_mtto_dias" class="input-field"
+                       placeholder="90" min="1"
+                       value="{{ activo.frecuencia_mtto_dias|default:'' }}">
+                <p class="text-xs mt-1" style="color: var(--text-muted);">Cada cuántos días requiere mantenimiento preventivo</p>
+            </div>
+            <div>
+                <label class="input-label">Próximo mantenimiento</label>
+                <input type="date" name="proximo_mtto" class="input-field"
+                       value="{{ activo.proximo_mtto|date:'Y-m-d'|default:'' }}">
+            </div>
+        </div>
+    </div>
+
+    <!-- Especificaciones -->
+    <div class="card-glass p-6 mb-4">
+        <h2 class="text-sm font-semibold uppercase tracking-wider mb-4" style="color: var(--text-muted);">
+            <i class="fas fa-info-circle mr-2"></i>Detalles Adicionales
+        </h2>
+        <div class="mb-4">
+            <label class="input-label">Especificaciones técnicas</label>
+            <textarea name="especificaciones" rows="3" class="input-field"
+                      placeholder="Capacidad, presión, temperatura, materiales...">{{ activo.especificaciones|default:'' }}</textarea>
+        </div>
+        <div>
+            <label class="input-label">Notas</label>
+            <textarea name="notas" rows="2" class="input-field"
+                      placeholder="Observaciones adicionales...">{{ activo.notas|default:'' }}</textarea>
+        </div>
+    </div>
+
+    <!-- Botones -->
+    <div class="flex gap-3 justify-end">
+        <a href="/activos/" class="btn-secondary">
+            <i class="fas fa-times"></i> Cancelar
+        </a>
+        <button type="submit" class="btn-primary">
+            <i class="fas fa-save"></i>
+            {% if activo %}Guardar cambios{% else %}Registrar equipo{% endif %}
+        </button>
+    </div>
+</form>
+
+</div>
+{% endblock %}

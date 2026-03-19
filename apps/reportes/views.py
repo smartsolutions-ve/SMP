@@ -65,7 +65,7 @@ def lista_view(request):
         margen = p.margen_real_porcentaje
         datos_rentabilidad.append({
             'codigo': p.codigo,
-            'nombre': p.nombre[:35],
+            'nombre': p.nombre[:55],
             'cliente': p.cliente_nombre[:25],
             'estado': p.get_estado_display(),
             'valor_contrato': p.valor_contrato,

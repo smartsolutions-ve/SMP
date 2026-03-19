@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block title %}{{ cargo.nombre }}{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+
+<!-- Header -->
+<div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-4">
+        <a href="/nomina/" class="btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 class="text-xl font-bold" style="color: var(--text-primary);">
+                <span class="font-mono" style="color: #0066FF;">{{ cargo.codigo }}</span> — {{ cargo.nombre }}
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 13px;">
+                {{ cargo.get_nivel_display }}
+                {% if not cargo.activo %}<span class="text-red-400 ml-2">INACTIVO</span>{% endif %}
+            </p>
+        </div>
+    </div>
+    <a href="/nomina/{{ cargo.id }}/editar/" class="btn-secondary">
+        <i class="fas fa-edit"></i> Editar
+    </a>
+</div>
+
+<!-- Métricas -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="card-glass p-5">
+        <div class="text-xs font-semibold uppercase tracking-wider mb-1" style="color: var(--text-muted);">Costo/Hora</div>
+        <div class="text-2xl font-bold" style="color: #22C55E;">${{ cargo.costo_hora|floatformat:2 }}</div>
+        <div class="text-xs" style="color: var(--text-muted);">{{ cargo.moneda }}</div>
+    </div>
+    <div class="card-glass p-5">
+        <div class="text-xs font-semibold uppercase tracking-wider mb-1" style="color: var(--text-muted);">Total Horas</div>
+        <div class="text-2xl font-bold" style="color: var(--text-primary);">{{ total_horas|floatformat:1 }}</div>
+        <div class="text-xs" style="color: var(--text-muted);">horas registradas</div>
+    </div>
+    <div class="card-glass p-5">
+        <div class="text-xs font-semibold uppercase tracking-wider mb-1" style="color: var(--text-muted);">Costo Total HH</div>
+        <div class="text-2xl font-bold" style="color: var(--text-primary);">${{ total_costo|floatformat:2 }}</div>
+        <div class="text-xs" style="color: var(--text-muted);">acumulado</div>
+    </div>
+    <div class="card-glass p-5">
+        <div class="text-xs font-semibold uppercase tracking-wider mb-1" style="color: var(--text-muted);">Registros</div>
+        <div class="text-2xl font-bold" style="color: var(--text-primary);">{{ total_registros }}</div>
+        <div class="text-xs" style="color: var(--text-muted);">entradas</div>
+    </div>
+</div>
+
+<!-- Descripción -->
+{% if cargo.descripcion %}
+<div class="card-glass p-5 mb-6">
+    <h3 class="text-sm font-semibold uppercase tracking-wider mb-2" style="color: var(--text-muted);">Descripción</h3>
+    <p class="text-sm" style="color: var(--text-primary);">{{ cargo.descripcion }}</p>
+</div>
+{% endif %}
+
+<!-- Vinculación BD Costos -->
+{% if cargo.item_costo %}
+<div class="card-glass p-5 mb-6">
+    <h3 class="text-sm font-semibold uppercase tracking-wider mb-2" style="color: var(--text-muted);">
+        <i class="fas fa-link mr-1"></i>Vinculado en BD de Costos
+    </h3>
+    <div class="flex items-center gap-3">
+        <span class="font-mono text-sm font-semibold" style="color: #0066FF;">{{ cargo.item_costo.codigo }}</span>
+        <span class="text-sm" style="color: var(--text-secondary);">{{ cargo.item_costo.descripcion }}</span>
+        <span class="font-mono text-sm" style="color: #22C55E;">${{ cargo.item_costo.precio_actual|floatformat:2 }}</span>
+    </div>
+</div>
+{% endif %}
+
+<!-- Historial de cambios -->
+<div class="card-glass p-5 mb-6">
+    <h3 class="text-sm font-semibold uppercase tracking-wider mb-3" style="color: var(--text-muted);">
+        <i class="fas fa-history mr-2"></i>Historial de Tarifas
+    </h3>
+    {% if historial %}
+    <div class="overflow-x-auto">
+        <table class="table-dark">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th class="text-right">Tarifa Anterior</th>
+                    <th class="text-right">Tarifa Nueva</th>
+                    <th>Variación</th>
+                    <th>Observación</th>
+                    <th>Usuario</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in historial %}
+                <tr>
+                    <td class="text-sm" style="color: var(--text-secondary);">{{ h.fecha|date:"d/m/Y H:i" }}</td>
+                    <td class="text-right font-mono text-sm" style="color: var(--text-muted);">${{ h.costo_hora_anterior|floatformat:2 }}</td>
+                    <td class="text-right font-mono text-sm font-semibold" style="color: var(--text-primary);">${{ h.costo_hora_nuevo|floatformat:2 }}</td>
+                    <td>
+                        {% if h.costo_hora_nuevo > h.costo_hora_anterior %}
+                        <span class="text-red-400 text-xs"><i class="fas fa-arrow-up"></i></span>
+                        {% elif h.costo_hora_nuevo < h.costo_hora_anterior %}
+                        <span class="text-green-400 text-xs"><i class="fas fa-arrow-down"></i></span>
+                        {% endif %}
+                    </td>
+                    <td class="text-xs" style="color: var(--text-muted);">{{ h.observacion|default:"—" }}</td>
+                    <td class="text-xs" style="color: var(--text-muted);">{{ h.usuario.username|default:"Sistema" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-sm" style="color: var(--text-muted);">Sin cambios de tarifa registrados.</p>
+    {% endif %}
+</div>
+
+</div>
+{% endblock %}

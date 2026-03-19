@@ -242,9 +242,9 @@ def generar_pdf_cotizacion(cotizacion):
             Paragraph(p.descripcion, fila_style),
             Paragraph(p.categoria or '', ParagraphStyle('cat', parent=celda_style, fontSize=7, textColor=GRIS_MEDIO)),
             Paragraph(p.unidad or '', ParagraphStyle('und', parent=celda_style, alignment=TA_CENTER)),
-            Paragraph(f"{p.cantidad:,.4f}", fila_mono),
-            Paragraph(f"${p.precio_unitario:,.2f}", fila_mono),
-            Paragraph(f"${p.subtotal:,.2f}", fila_mono),
+            Paragraph(f"{p.cantidad:.4f}", fila_mono),
+            Paragraph(f"${p.precio_unitario:.2f}", fila_mono),
+            Paragraph(f"${p.subtotal:.2f}", fila_mono),
         ])
 
     tabla_partidas = Table(tabla_data, colWidths=col_widths, repeatRows=1)
@@ -269,11 +269,10 @@ def generar_pdf_cotizacion(cotizacion):
     story.append(Spacer(1, 10))
 
     # ─── TOTALES ─────────────────────────────────────────────────
-    margen_utilidad = cotizacion.margen_utilidad_porcentaje or Decimal('0')
     totales_data = [
-        ['', Paragraph('Subtotal:', total_label_style), Paragraph(f"${cotizacion.subtotal:,.2f}", total_valor_style)],
-        ['', Paragraph(f"Utilidad ({margen_utilidad}%):", total_label_style), Paragraph(f"${cotizacion.utilidad_monto:,.2f}", total_valor_style)],
-        ['', Paragraph('TOTAL USD:', ParagraphStyle('TotalGrande', parent=total_label_style, fontSize=11, textColor=AZUL_OSCURO)), Paragraph(f"${cotizacion.total:,.2f}", ParagraphStyle('TotalGrandeVal', parent=total_valor_style, fontSize=11, textColor=AZUL))],
+        ['', Paragraph('Subtotal:', total_label_style), Paragraph(f"${cotizacion.subtotal:.2f}", total_valor_style)],
+        ['', Paragraph('Utilidad:', total_label_style), Paragraph(f"${cotizacion.utilidad_monto:.2f}", total_valor_style)],
+        ['', Paragraph('TOTAL USD:', ParagraphStyle('TotalGrande', parent=total_label_style, fontSize=11, textColor=AZUL_OSCURO)), Paragraph(f"${cotizacion.total:.2f}", ParagraphStyle('TotalGrandeVal', parent=total_valor_style, fontSize=11, textColor=AZUL))],
     ]
     tabla_totales = Table(totales_data, colWidths=[ancho_util - 6.5*cm, 3.5*cm, 3.0*cm])
     tabla_totales.setStyle(TableStyle([

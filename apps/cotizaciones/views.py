@@ -318,6 +318,7 @@ def convertir_proyecto_view(request, cot_id):
         proyecto = Proyecto.objects.create(
             empresa=empresa,
             cotizacion_origen=cot,
+            activo_cliente=cot.activo_cliente,
             nombre=cot.nombre_proyecto,
             descripcion=cot.descripcion,
             ubicacion=cot.ubicacion,

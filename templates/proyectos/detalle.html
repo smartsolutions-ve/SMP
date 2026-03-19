@@ -204,10 +204,16 @@
                         <td class="text-center">
                             {% if proyecto.estado == 'EN_EJECUCION' or proyecto.estado == 'PAUSADO' %}
                                 {% if p.estado != 'COMPLETADA' %}
+                                <div class="flex gap-1 justify-center">
                                 <a href="/proyectos/{{ proyecto.id }}/partida/{{ p.id }}/avance/"
                                    class="btn-primary btn-sm">
                                     <i class="fas fa-plus text-xs"></i> Avance
                                 </a>
+                                <a href="/nomina/hh/{{ p.id }}/"
+                                   class="btn-secondary btn-sm" title="Registrar HH">
+                                    <i class="fas fa-clock text-xs"></i>
+                                </a>
+                                </div>
                                 {% else %}
                                 <span class="text-xs" style="color: #334155;">—</span>
                                 {% endif %}

@@ -16,6 +16,8 @@ urlpatterns = [
     path('bd-costos/', include('apps.bd_costos.urls')),
     path('proyectos/', include('apps.proyectos.urls')),
     path('reportes/', include('apps.reportes.urls')),
+    path('activos/', include('apps.activos.urls')),
+    path('nomina/', include('apps.nomina.urls')),
 ]
 
 if settings.DEBUG:

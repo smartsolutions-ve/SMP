@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block title %}Activos del Cliente{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+
+<!-- Header -->
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold" style="color: var(--text-primary);">
+            <i class="fas fa-cogs" style="color: #0066FF;"></i>
+            Activos del Cliente
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 13px;">{{ total }} equipos registrados — {{ operativos }} operativos{% if requieren_mtto %} — <span class="text-yellow-500 font-semibold">{{ requieren_mtto }} requieren mantenimiento</span>{% endif %}</p>
+    </div>
+    <a href="/activos/nuevo/" class="btn-primary">
+        <i class="fas fa-plus"></i> Registrar Equipo
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="card-glass p-4 mb-5">
+    <form method="get" class="flex flex-wrap gap-3 items-end">
+        <div class="flex-1 min-w-48">
+            <label class="input-label">Buscar</label>
+            <div class="relative">
+                <input type="text" name="q" value="{{ busqueda }}" class="input-field pl-9"
+                       placeholder="Código, nombre, marca, serial...">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-sm" style="color: var(--text-muted);"></i>
+            </div>
+        </div>
+        <div class="w-44">
+            <label class="input-label">Tipo</label>
+            <select name="tipo" class="input-field">
+                <option value="">Todos</option>
+                {% for val, label in tipos %}
+                <option value="{{ val }}" {% if tipo_sel == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="w-44">
+            <label class="input-label">Estado</label>
+            <select name="estado" class="input-field">
+                <option value="">Todos</option>
+                {% for val, label in estados %}
+                <option value="{{ val }}" {% if estado_sel == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="w-44">
+            <label class="input-label">Cliente</label>
+            <select name="cliente" class="input-field">
+                <option value="">Todos</option>
+                {% for c in clientes_unicos %}
+                <option value="{{ c }}" {% if cliente_sel == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn-primary">
+            <i class="fas fa-filter"></i> Filtrar
+        </button>
+        {% if busqueda or tipo_sel or estado_sel or cliente_sel %}
+        <a href="/activos/" class="btn-secondary">
+            <i class="fas fa-times"></i> Limpiar
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Tabla -->
+<div class="card-glass overflow-hidden">
+    {% if activos %}
+    <div class="overflow-x-auto">
+        <table class="table-dark">
+            <thead>
+                <tr>
+                    <th>Código/TAG</th>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Cliente</th>
+                    <th>Ubicación</th>
+                    <th>Marca / Modelo</th>
+                    <th>Estado</th>
+                    <th>Mtto.</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in activos %}
+                <tr>
+                    <td>
+                        <span class="font-mono text-xs font-semibold" style="color: #0066FF;">{{ a.codigo_equipo }}</span>
+                    </td>
+                    <td>
+                        <div class="font-medium text-sm" style="color: var(--text-primary);">{{ a.nombre }}</div>
+                        {% if a.serial %}
+                        <div class="text-xs mt-0.5" style="color: var(--text-secondary);">
+                            S/N: {{ a.serial }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-blue">{{ a.get_tipo_display }}</span>
+                    </td>
+                    <td class="text-sm" style="color: var(--text-secondary);">{{ a.cliente_nombre }}</td>
+                    <td class="text-xs" style="color: var(--text-muted);">{{ a.ubicacion|default:"—" }}</td>
+                    <td class="text-xs" style="color: var(--text-secondary);">
+                        {{ a.marca|default:"" }}{% if a.marca and a.modelo %} / {% endif %}{{ a.modelo|default:"" }}
+                        {% if not a.marca and not a.modelo %}—{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ a.estado_color }}">{{ a.get_estado_display }}</span>
+                    </td>
+                    <td>
+                        {% if a.requiere_mtto %}
+                        <span class="badge badge-yellow" title="Mantenimiento vencido">
+                            <i class="fas fa-exclamation-triangle text-xs"></i> Vencido
+                        </span>
+                        {% elif a.dias_para_mtto is not None %}
+                        <span class="text-xs" style="color: var(--text-muted);">{{ a.dias_para_mtto }}d</span>
+                        {% else %}
+                        <span class="text-xs" style="color: var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="flex items-center justify-center gap-1">
+                            <a href="/activos/{{ a.id }}/"
+                               class="btn-secondary btn-sm" title="Ver detalle">
+                                <i class="fas fa-eye text-xs"></i>
+                            </a>
+                            <a href="/activos/{{ a.id }}/editar/"
+                               class="btn-secondary btn-sm" title="Editar">
+                                <i class="fas fa-edit text-xs"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="p-16 text-center">
+        <i class="fas fa-cogs text-4xl mb-4" style="color: var(--text-muted);"></i>
+        <p class="text-lg font-medium mb-2" style="color: var(--text-primary);">
+            {% if busqueda %}Sin resultados para "{{ busqueda }}"{% else %}Sin equipos registrados{% endif %}
+        </p>
+        <p style="color: var(--text-secondary); font-size: 13px;">
+            {% if busqueda %}Intenta con otros términos.{% else %}Registra los equipos de tus clientes para asociarlos a cotizaciones y proyectos.{% endif %}
+        </p>
+        {% if not busqueda %}
+        <a href="/activos/nuevo/" class="btn-primary mt-5 inline-flex">
+            <i class="fas fa-plus"></i> Registrar primer equipo
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% block title %}{{ activo.codigo_equipo }} — {{ activo.nombre }}{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+
+<!-- Header -->
+<div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-4">
+        <a href="/activos/" class="btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 class="text-xl font-bold" style="color: var(--text-primary);">
+                <span class="font-mono" style="color: #0066FF;">{{ activo.codigo_equipo }}</span> — {{ activo.nombre }}
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 13px;">
+                {{ activo.get_tipo_display }} — {{ activo.cliente_nombre }}
+            </p>
+        </div>
+    </div>
+    <div class="flex gap-2">
+        <a href="/activos/{{ activo.id }}/editar/" class="btn-secondary">
+            <i class="fas fa-edit"></i> Editar
+        </a>
+    </div>
+</div>
+
+<!-- Info cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <!-- Estado -->
+    <div class="card-glass p-5">
+        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-muted);">Estado</div>
+        <span class="badge badge-{{ activo.estado_color }} text-sm px-3 py-1">{{ activo.get_estado_display }}</span>
+    </div>
+    <!-- Mantenimiento -->
+    <div class="card-glass p-5">
+        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-muted);">Próximo Mtto.</div>
+        {% if activo.proximo_mtto %}
+        <div class="text-lg font-bold {% if activo.requiere_mtto %}text-yellow-500{% else %}{% endif %}" style="{% if not activo.requiere_mtto %}color: var(--text-primary);{% endif %}">
+            {{ activo.proximo_mtto|date:"d/m/Y" }}
+        </div>
+        {% if activo.requiere_mtto %}
+        <p class="text-xs text-yellow-500 mt-1"><i class="fas fa-exclamation-triangle"></i> Mantenimiento vencido</p>
+        {% elif activo.dias_para_mtto is not None %}
+        <p class="text-xs mt-1" style="color: var(--text-muted);">En {{ activo.dias_para_mtto }} días</p>
+        {% endif %}
+        {% else %}
+        <div class="text-lg" style="color: var(--text-muted);">No programado</div>
+        {% endif %}
+    </div>
+    <!-- Frecuencia -->
+    <div class="card-glass p-5">
+        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-muted);">Frecuencia Mtto.</div>
+        <div class="text-lg font-bold" style="color: var(--text-primary);">
+            {% if activo.frecuencia_mtto_dias %}Cada {{ activo.frecuencia_mtto_dias }} días{% else %}—{% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Detalles del equipo -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div class="card-glass p-5">
+        <h3 class="text-sm font-semibold uppercase tracking-wider mb-3" style="color: var(--text-muted);">
+            <i class="fas fa-cog mr-2"></i>Datos del Equipo
+        </h3>
+        <div class="space-y-2">
+            <div class="flex justify-between">
+                <span class="text-sm" style="color: var(--text-secondary);">Tipo</span>
+                <span class="text-sm font-medium" style="color: var(--text-primary);">{{ activo.get_tipo_display }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-sm" style="color: var(--text-secondary);">Marca</span>
+                <span class="text-sm font-medium" style="color: var(--text-primary);">{{ activo.marca|default:"—" }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-sm" style="color: var(--text-secondary);">Modelo</span>
+                <span class="text-sm font-medium" style="color: var(--text-primary);">{{ activo.modelo|default:"—" }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-sm" style="color: var(--text-secondary);">Serial</span>
+                <span class="text-sm font-mono" style="color: var(--text-primary);">{{ activo.serial|default:"—" }}</span>
+            </div>
+            {% if activo.fecha_instalacion %}
+            <div class="flex justify-between">
+                <span class="text-sm" style="color: var(--text-secondary);">Instalación</span>
+                <span class="text-sm" style="color: var(--text-primary);">{{ activo.fecha_instalacion|date:"d/m/Y" }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card-glass p-5">
+        <h3 class="text-sm font-semibold uppercase tracking-wider mb-3" style="color: var(--text-muted);">
+            <i class="fas fa-map-marker-alt mr-2"></i>Ubicación y Cliente
+        </h3>
+        <div class="space-y-2">
+            <div class="flex justify-between">
+                <span class="text-sm" style="color: var(--text-secondary);">Cliente</span>
+                <span class="text-sm font-medium" style="color: var(--text-primary);">{{ activo.cliente_nombre }}</span>
+            </div>
+            {% if activo.cliente_rif %}
+            <div class="flex justify-between">
+                <span class="text-sm" style="color: var(--text-secondary);">RIF</span>
+                <span class="text-sm font-mono" style="color: var(--text-primary);">{{ activo.cliente_rif }}</span>
+            </div>
+            {% endif %}
+            <div class="flex justify-between">
+                <span class="text-sm" style="color: var(--text-secondary);">Ubicación</span>
+                <span class="text-sm" style="color: var(--text-primary);">{{ activo.ubicacion|default:"—" }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-sm" style="color: var(--text-secondary);">Área</span>
+                <span class="text-sm" style="color: var(--text-primary);">{{ activo.area|default:"—" }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Especificaciones -->
+{% if activo.especificaciones %}
+<div class="card-glass p-5 mb-6">
+    <h3 class="text-sm font-semibold uppercase tracking-wider mb-3" style="color: var(--text-muted);">
+        <i class="fas fa-clipboard-list mr-2"></i>Especificaciones Técnicas
+    </h3>
+    <p class="text-sm whitespace-pre-line" style="color: var(--text-primary);">{{ activo.especificaciones }}</p>
+</div>
+{% endif %}
+
+{% if activo.notas %}
+<div class="card-glass p-5 mb-6">
+    <h3 class="text-sm font-semibold uppercase tracking-wider mb-3" style="color: var(--text-muted);">
+        <i class="fas fa-sticky-note mr-2"></i>Notas
+    </h3>
+    <p class="text-sm whitespace-pre-line" style="color: var(--text-secondary);">{{ activo.notas }}</p>
+</div>
+{% endif %}
+
+<!-- Cotizaciones asociadas -->
+<div class="card-glass p-5 mb-6">
+    <h3 class="text-sm font-semibold uppercase tracking-wider mb-3" style="color: var(--text-muted);">
+        <i class="fas fa-file-invoice-dollar mr-2"></i>Cotizaciones Asociadas
+    </h3>
+    {% if cotizaciones %}
+    <div class="space-y-2">
+        {% for cot in cotizaciones %}
+        <a href="/cotizaciones/{{ cot.id }}/" class="flex items-center justify-between p-3 rounded-lg hover:opacity-80" style="background: var(--table-row-hover);">
+            <div>
+                <span class="font-mono text-sm font-semibold" style="color: #0066FF;">{{ cot.numero }}</span>
+                <span class="text-sm ml-2" style="color: var(--text-primary);">{{ cot.nombre_proyecto }}</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="badge badge-{{ cot.estado_color }}">{{ cot.get_estado_display }}</span>
+                <span class="font-mono text-sm font-semibold" style="color: #22C55E;">${{ cot.total|floatformat:2 }}</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm" style="color: var(--text-muted);">No hay cotizaciones asociadas a este equipo.</p>
+    {% endif %}
+</div>
+
+<!-- Proyectos asociados -->
+<div class="card-glass p-5 mb-6">
+    <h3 class="text-sm font-semibold uppercase tracking-wider mb-3" style="color: var(--text-muted);">
+        <i class="fas fa-hard-hat mr-2"></i>Proyectos Asociados
+    </h3>
+    {% if proyectos %}
+    <div class="space-y-2">
+        {% for p in proyectos %}
+        <a href="/proyectos/{{ p.id }}/" class="flex items-center justify-between p-3 rounded-lg hover:opacity-80" style="background: var(--table-row-hover);">
+            <div>
+                <span class="font-mono text-sm font-semibold" style="color: #0066FF;">{{ p.codigo }}</span>
+                <span class="text-sm ml-2" style="color: var(--text-primary);">{{ p.nombre }}</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="badge badge-blue">{{ p.get_estado_display }}</span>
+                <span class="text-sm" style="color: var(--text-secondary);">{{ p.porcentaje_avance }}%</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm" style="color: var(--text-muted);">No hay proyectos asociados a este equipo.</p>
+    {% endif %}
+</div>
+
+<!-- Metadata -->
+<div class="text-xs text-center mt-6" style="color: var(--text-muted);">
+    Registrado el {{ activo.fecha_creacion|date:"d/m/Y H:i" }} por {{ activo.creado_por.get_full_name|default:activo.creado_por.username }}
+</div>
+
+</div>
+{% endblock %}

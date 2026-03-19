@@ -42,6 +42,15 @@ class Cotizacion(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='cotizaciones')
     numero = models.CharField('Número', max_length=20, unique=True)
 
+    # Activo asociado (opcional)
+    activo_cliente = models.ForeignKey(
+        'activos.ActivoCliente',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='cotizaciones',
+        verbose_name='Equipo/Activo asociado'
+    )
+
     # Datos del cliente
     cliente_nombre = models.CharField('Nombre del cliente', max_length=200)
     cliente_rif = models.CharField('RIF del cliente', max_length=15, blank=True)

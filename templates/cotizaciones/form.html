@@ -16,7 +16,7 @@
     </div>
 </div>
 
-<form method="post" @submit.prevent="enviarFormulario">
+<form method="post" @submit.prevent="enviarFormulario" x-ref="formulario">
     {% csrf_token %}
     <input type="hidden" name="partidas_data" :value="JSON.stringify(partidas)">
 
@@ -386,8 +386,7 @@ function cotizacionApp() {
                 alert('Debes agregar al menos una partida antes de guardar.');
                 return;
             }
-            // this.$el es el div raíz (x-data), no el form. Buscar el form hijo.
-            this.$el.querySelector('form').submit();
+            this.$refs.formulario.submit();
         },
     };
 }

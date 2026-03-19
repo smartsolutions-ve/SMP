@@ -33,6 +33,8 @@ LOCAL_APPS = [
     'apps.bd_costos',
     'apps.proyectos',
     'apps.reportes',
+    'apps.activos',
+    'apps.nomina',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -92,7 +94,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internacionalización
 LANGUAGE_CODE = 'es-ve'
 TIME_ZONE = 'America/Caracas'
-USE_I18N = True
+USE_I18N = False   # Desactivado para evitar formato de números con coma (13.822,25 → 13822.25 consistente)
 USE_TZ = True
 
 # Archivos estáticos
