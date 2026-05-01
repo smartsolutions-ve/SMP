@@ -96,7 +96,7 @@
                 </label>
                 <input type="number" name="precio_actual" class="input-field font-mono"
                        placeholder="0.00" step="0.0001" min="0.0001"
-                       value="{{ item.precio_actual|default:'' }}"
+                       value="{{ item.precio_actual|stringformat:'f' }}"
                        required>
             </div>
             <div>

@@ -139,12 +139,17 @@ class Cotizacion(models.Model):
 
     def _generar_numero(self):
         from datetime import date
+        from django.db import transaction
         año = date.today().year
-        ultimo = Cotizacion.objects.filter(
-            empresa=self.empresa,
-            numero__startswith=f'COT-{año}-'
-        ).count()
-        return f'COT-{año}-{str(ultimo + 1).zfill(3)}'
+        
+        with transaction.atomic():
+            # Bloqueamos el registro de la empresa para evitar condiciones de carrera
+            Empresa.objects.select_for_update().get(id=self.empresa_id)
+            ultimo = Cotizacion.objects.filter(
+                empresa_id=self.empresa_id,
+                numero__startswith=f'COT-{año}-'
+            ).count()
+            return f'COT-{año}-{str(ultimo + 1).zfill(3)}'
 
 
 class PartidaCotizacion(models.Model):
@@ -179,8 +184,10 @@ class PartidaCotizacion(models.Model):
         return f"{self.codigo or '—'} {self.descripcion} ({self.cotizacion.numero})"
 
     def save(self, *args, **kwargs):
+        recalcular = kwargs.pop('recalcular_totales', True)
         self.subtotal = (self.cantidad * self.precio_unitario).quantize(Decimal('0.01'))
         super().save(*args, **kwargs)
         # Recalcular totales de la cotización
-        self.cotizacion.calcular_totales()
-        self.cotizacion.save(update_fields=['subtotal', 'utilidad_monto', 'total'])
+        if recalcular:
+            self.cotizacion.calcular_totales()
+            self.cotizacion.save(update_fields=['subtotal', 'utilidad_monto', 'total'])

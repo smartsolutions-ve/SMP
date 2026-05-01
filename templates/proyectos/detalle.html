@@ -2,8 +2,8 @@
 {% block title %}{{ proyecto.codigo }} — {{ proyecto.nombre }}{% endblock %}
 
 {% block content %}
-<div class="animate-fade-in" x-data="{ tabActivo: '{{ tab_activo }}', showOC: false, showFoto: false }"
-     @keydown.escape.window="showOC = false; showFoto = false">
+<div class="animate-fade-in" x-data="{ tabActivo: '{{ tab_activo }}', showOC: false, showFoto: false, showCompletar: false }"
+     @keydown.escape.window="showOC = false; showFoto = false; showCompletar = false">
 
 <!-- Header -->
 <div class="flex items-start justify-between mb-5 flex-wrap gap-4">
@@ -33,7 +33,23 @@
             <button class="btn-secondary btn-sm"><i class="fas fa-pause"></i> Pausar</button>
         </form>
         <form method="post" action="/proyectos/{{ proyecto.id }}/estado/">{% csrf_token %}<input type="hidden" name="estado" value="COMPLETADO">
-            <button class="btn-success btn-sm" onclick="return confirm('¿Marcar como completado?')"><i class="fas fa-check"></i> Completar</button>
+            <button type="button" @click="showCompletar = true" class="btn-success btn-sm"><i class="fas fa-check"></i> Completar</button>
+            <div x-show="showCompletar" x-cloak class="modal-overlay" style="z-index: 50;"
+                 @click.self="showCompletar = false"
+                 @keydown.escape.window="showCompletar = false">
+                <div class="modal-box text-center">
+                    <i class="fas fa-check-circle text-4xl text-green-500 mb-3"></i>
+                    <h2 class="text-xl font-bold text-white mb-2">¿Completar Proyecto?</h2>
+                    <p class="text-slate-300 mb-6 whitespace-normal">Esta acción marcará el proyecto como completado y no se podrán agregar más avances ni costos.</p>
+                    <div class="flex gap-3 justify-center">
+                        <button type="button" @click="showCompletar = false" class="btn-secondary">Cancelar</button>
+                        <button type="submit" class="btn-success" x-data="{ loading: false }" @click="loading = true">
+                            <span x-show="!loading">Sí, completar</span>
+                            <span x-show="loading"><i class="fas fa-spinner fa-spin"></i> Guardando...</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </form>
         {% elif proyecto.estado == 'PAUSADO' %}
         <form method="post" action="/proyectos/{{ proyecto.id }}/estado/">{% csrf_token %}<input type="hidden" name="estado" value="EN_EJECUCION">

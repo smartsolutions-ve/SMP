@@ -10,19 +10,11 @@ import datetime
 import json
 
 
-def tenant_required(view_func):
-    def wrapper(request, *args, **kwargs):
-        if not request.tenant:
-            return redirect('login')
-        if not request.user.puede_ver_costos:
-            messages.error(request, 'No tienes permisos para ver reportes.')
-            return redirect('dashboard')
-        return view_func(request, *args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return login_required(wrapper)
+from apps.core.decorators import tenant_required, permiso_costos_required
 
 
 @tenant_required
+@permiso_costos_required
 def lista_view(request):
     empresa = request.tenant
     from apps.proyectos.models import Proyecto

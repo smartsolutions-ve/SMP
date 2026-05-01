@@ -39,9 +39,16 @@ class CategoriaItem(models.Model):
 
     @property
     def nombre_jerarquico(self):
-        if self.padre:
-            return f"{self.padre.nombre_jerarquico} > {self.nombre}"
-        return self.nombre
+        nombres = [self.nombre]
+        actual = self.padre
+        profundidad = 0
+        while actual and profundidad < 5:  # Limit logic to 5 loops to prevent stack overflow
+            nombres.insert(0, actual.nombre)
+            actual = actual.padre
+            profundidad += 1
+        if actual:
+            nombres.insert(0, '...')
+        return " > ".join(nombres)
 
 
 class ItemCosto(models.Model):

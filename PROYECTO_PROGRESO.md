@@ -175,23 +175,30 @@ smart_pm/            ← Proyecto Django raíz
 
 | # | Archivo | Problema | Impacto | Solución |
 |---|---------|----------|---------|----------|
-| BUG-1 | `apps/proyectos/models.py:150` | **Race condition en `_generar_codigo()`** — Si dos usuarios crean un proyecto simultáneamente, ambos pueden obtener el mismo código (ej: `PROY-2026-003` duplicado). Mismo problema en `cotizaciones/models.py:131` con `_generar_numero()` | Datos duplicados, falla de constraint | Usar `select_for_update()` dentro de una transacción atómica, o migrar a `AutoField` separado por empresa |
+| BUG-1 | `apps/proyectos/models.py:150` | **Race condition en `_generar_codigo()`** | Datos duplicados, falla de constraint | ✅ CORREGIDO — `select_for_update()` en bloque atómico |
+| BUG-01 (Auditoría) | `apps/cotizaciones/...` | **Ausencia de validación en campos de contacto** | Correos que no llegan, datos corruptos | ✅ CORREGIDO — HTML5 patterns y validación server-side |
 
 ### 🟡 IMPORTANTES — Afectan rendimiento a escala
 
 | # | Archivo | Problema | Impacto | Solución |
 |---|---------|----------|---------|----------|
 | BUG-3 | `apps/proyectos/models.py:99` y `apps/proyectos/views.py:26` | **N+1 queries en lista de proyectos** — `costo_real_total` (property) llama `self.partidas.all()` por cada proyecto. 20 proyectos = 21 queries a la DB | Lento con muchos proyectos | ✅ CORREGIDO — agregado `prefetch_related('partidas')` en `lista_view` |
-| BUG-4 | `apps/bd_costos/models.py:41` | **`nombre_jerarquico` sin protección de profundidad** — Property recursiva sin límite real. El comentario dice "máximo 3 niveles" pero el código no lo enforcea | Stack overflow si datos corruptos, queries recursivas | Agregar contador de profundidad o iterar en lugar de recursión |
-| BUG-5 | `apps/cotizaciones/models.py:172` | **Recalculo de totales en cada `save()` de partida** — `PartidaCotizacion.save()` llama `cotizacion.calcular_totales()` que hace `self.partidas.all()`. Si importas 50 partidas en bulk, son 50 recalculos | Muy lento en importación masiva desde Excel | Usar `update_fields` + recalcular solo al final en operaciones bulk |
+| BUG-4 | `apps/bd_costos/models.py:41` | **`nombre_jerarquico` sin protección de profundidad** | Stack overflow | ✅ CORREGIDO — Iterativo con límite de 5 niveles |
+| BUG-5 | `apps/cotizaciones/models.py:172` | **Recalculo de totales en cada `save()` de partida** | Muy lento | ✅ CORREGIDO — Bandera `recalcular_totales` y bulk update |
 
-### 🟢 MEJORAS — Calidad de código
+### 🟢 MEJORAS Y UX — UI/UX y Calidad de código
 
 | # | Archivo | Problema | Impacto | Solución |
 |---|---------|----------|---------|----------|
-| BUG-6 | `apps/proyectos/views.py:14`, `apps/cotizaciones/views.py`, `apps/bd_costos/views.py` | **`tenant_required` duplicado en cada app** — El decorador está definido localmente en cada views.py | Difícil de mantener, cambio en uno no afecta los otros | Mover a `apps/core/decorators.py` e importar desde ahí |
-| BUG-7 | `config/settings/production.py` | **`ALLOWED_HOSTS` no definido en production.py** — Depende 100% del `.env`. Si se despliega sin `.env` correcto, Django lanza error 500 sin mensaje claro | Difícil de debuggear en producción | Agregar fallback explícito o al menos un comentario de advertencia |
-| BUG-8 | Todos los `tests.py` | **Cero tests** — Toda la lógica de negocio (`recalcular_avance`, `calcular_totales`, `OrdenCambio.aprobar`) está sin cubrir | Un refactor puede romper cálculos financieros sin que nadie lo detecte | Escribir tests para los 3 métodos críticos mínimamente |
+| BUG-6 | Múltiples `views.py` | **`tenant_required` duplicado** | Difícil de mantener | ✅ CORREGIDO — Extraído a `apps/core/decorators.py` |
+| BUG-7 | `config/settings/production.py` | **`ALLOWED_HOSTS` no definido o inseguro** | Error 500 en prod | ✅ CORREGIDO — Fuerza variable `.env` |
+| BUG-8 | Todos los `tests.py` | **Cero tests** | Regresiones silentes | ✅ CORREGIDO — Tests financieros activos |
+| BUG-02 | Vista Cotización PDF | **Retardo de renderizado PDF** | Confusión del usuario | ✅ CORREGIDO — Spinner interactivo de carga agregado |
+| UX-01  | Registro Avance | **Desaparición del botón Avance** | Cierre accidental | ✅ CORREGIDO — Modal confirmación añadido |
+| UX-02  | Editor Cotizaciones | **Columna "Sección" vacía** | Interfaz confusa | ✅ CORREGIDO — Placeholders añadidos |
+| UX-03  | Cotizaciones / PDF | **Columna "Categoría" vacía** | Falta herencia DB | ✅ CORREGIDO — Implementado vía API JSON |
+| UX-04  | Completar Proyecto | **Botón usa confirmación nativa** | UI pobre | ✅ CORREGIDO — Modal Alpine.js añadido |
+| UX-05/06 | Todo el sistema | **Inconsistencia decimal y de miles** | Confusión contable | ✅ CORREGIDO — Localización `es-VE` y `stringformat:'f'` aplicado |
 
 ---
 

@@ -15,13 +15,7 @@ from .models import Cotizacion, PartidaCotizacion
 from apps.bd_costos.models import ItemCosto
 
 
-def tenant_required(view_func):
-    def wrapper(request, *args, **kwargs):
-        if not request.tenant:
-            return redirect('login')
-        return view_func(request, *args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return login_required(wrapper)
+from apps.core.decorators import tenant_required
 
 
 @tenant_required
@@ -168,6 +162,25 @@ def _guardar_cotizacion(request, empresa, cot_existente):
             messages.error(request, 'La fecha de vencimiento es requerida.')
             raise ValueError()
 
+        import re
+        from django.core.validators import validate_email
+        from django.core.exceptions import ValidationError
+
+        if cliente_telefono and not re.match(r'^[\d\s\-\+\(\)]{7,15}$', cliente_telefono):
+            messages.error(request, 'Teléfono inválido. Usa solo números, espacios, guiones y paréntesis.')
+            raise ValueError()
+        
+        if cliente_email:
+            try:
+                validate_email(cliente_email)
+            except ValidationError:
+                messages.error(request, 'Correo electrónico inválido.')
+                raise ValueError()
+                
+        if cliente_contacto and not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ\s\.\-]{2,80}$', cliente_contacto):
+            messages.error(request, 'Persona de contacto inválida. Usa solo letras y espacios.')
+            raise ValueError()
+
         fecha_vencimiento = datetime.date.fromisoformat(fecha_vencimiento_str)
         margen = Decimal(margen_str)
 
@@ -205,13 +218,14 @@ def _guardar_cotizacion(request, empresa, cot_existente):
             cot.partidas.all().delete()
 
         subtotal_total = Decimal('0.00')
+        nuevas_partidas = []
         for i, p_data in enumerate(partidas_data):
             cantidad = Decimal(str(p_data.get('cantidad', 0)))
             precio_unitario = Decimal(str(p_data.get('precio_unitario', 0)))
             subtotal = (cantidad * precio_unitario).quantize(Decimal('0.01'))
             subtotal_total += subtotal
 
-            PartidaCotizacion.objects.create(
+            p = PartidaCotizacion(
                 cotizacion=cot,
                 orden=i,
                 codigo=p_data.get('codigo', '').strip(),
@@ -222,6 +236,9 @@ def _guardar_cotizacion(request, empresa, cot_existente):
                 precio_unitario=precio_unitario,
                 subtotal=subtotal,
             )
+            nuevas_partidas.append(p)
+            
+        PartidaCotizacion.objects.bulk_create(nuevas_partidas)
 
         # Actualizar totales de la cotización (sin triggers)
         utilidad = (subtotal_total * margen / Decimal('100')).quantize(Decimal('0.01'))

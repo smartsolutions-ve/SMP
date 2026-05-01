@@ -155,12 +155,17 @@ class Proyecto(models.Model):
 
     def _generar_codigo(self):
         from datetime import date
+        from django.db import transaction
         año = date.today().year
-        ultimo = Proyecto.objects.filter(
-            empresa=self.empresa,
-            codigo__startswith=f'PROY-{año}-'
-        ).count()
-        return f'PROY-{año}-{str(ultimo + 1).zfill(3)}'
+        
+        with transaction.atomic():
+            # Bloqueamos el registro de la empresa para evitar condiciones de carrera
+            Empresa.objects.select_for_update().get(id=self.empresa_id)
+            ultimo = Proyecto.objects.filter(
+                empresa_id=self.empresa_id,
+                codigo__startswith=f'PROY-{año}-'
+            ).count()
+            return f'PROY-{año}-{str(ultimo + 1).zfill(3)}'
 
 
 class PartidaProyecto(models.Model):

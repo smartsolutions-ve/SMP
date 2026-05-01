@@ -45,7 +45,9 @@
                     </div>
                     <div>
                         <label class="input-label">Teléfono</label>
-                        <input type="text" name="cliente_telefono" class="input-field"
+                        <input type="tel" name="cliente_telefono" class="input-field"
+                               pattern="[\d\s\-\+\(\)]{7,15}"
+                               title="Solo números, espacios, guiones y paréntesis"
                                placeholder="0212-0000000"
                                value="{{ cot.cliente_telefono|default:'' }}">
                     </div>
@@ -58,6 +60,8 @@
                     <div>
                         <label class="input-label">Persona de contacto</label>
                         <input type="text" name="cliente_contacto" class="input-field"
+                               pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s\.\-]{2,80}"
+                               title="Solo letras y espacios"
                                placeholder="Nombre del contacto"
                                value="{{ cot.cliente_contacto|default:'' }}">
                     </div>
@@ -189,7 +193,7 @@
                                         <td class="px-1 py-1.5">
                                             <input type="text" x-model="p.categoria"
                                                    class="input-field text-xs py-1.5"
-                                                   placeholder="Sección">
+                                                   placeholder="Opcional">
                                         </td>
                                         <td class="px-1 py-1.5">
                                             <input type="number" x-model="p.cantidad"
@@ -370,7 +374,7 @@ function cotizacionApp() {
                 codigo: item.codigo,
                 descripcion: item.descripcion,
                 unidad: item.unidad,
-                categoria: '',
+                categoria: item.categoria || '',
                 cantidad: 1,
                 precio_unitario: item.precio,
                 subtotal: item.precio,

@@ -14,15 +14,7 @@ from .models import ItemCosto, CategoriaItem, HistorialPrecio
 from apps.core.models import Usuario
 
 
-def tenant_required(view_func):
-    """Decorador que verifica que el usuario tiene empresa asignada."""
-    def wrapper(request, *args, **kwargs):
-        if not request.tenant:
-            messages.error(request, 'No tienes empresa asignada.')
-            return redirect('login')
-        return view_func(request, *args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return login_required(wrapper)
+from apps.core.decorators import tenant_required
 
 
 @tenant_required
@@ -288,7 +280,7 @@ def buscar_items_api(request):
         items = items.filter(
             Q(codigo__icontains=q) | Q(descripcion__icontains=q)
         )
-    items = items[:20]
+    items = items.select_related('categoria')[:20]
 
     data = [
         {
@@ -299,6 +291,7 @@ def buscar_items_api(request):
             'precio': float(item.precio_actual),
             'moneda': item.moneda,
             'tipo': item.get_tipo_display(),
+            'categoria': item.categoria.nombre if item.categoria else '',
         }
         for item in items
     ]

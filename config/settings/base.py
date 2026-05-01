@@ -94,7 +94,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internacionalización
 LANGUAGE_CODE = 'es-ve'
 TIME_ZONE = 'America/Caracas'
-USE_I18N = False   # Desactivado para evitar formato de números con coma (13.822,25 → 13822.25 consistente)
+USE_I18N = True   # Activado para formatos numéricos es-VE
+USE_THOUSAND_SEPARATOR = True
+DECIMAL_SEPARATOR = ','
+THOUSAND_SEPARATOR = '.'
 USE_TZ = True
 
 # Archivos estáticos

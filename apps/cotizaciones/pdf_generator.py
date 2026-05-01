@@ -134,6 +134,8 @@ def generar_pdf_cotizacion(cotizacion):
         'NumCot',
         parent=styles['Normal'],
         fontSize=22,
+        leading=28,
+        spaceAfter=8,
         fontName='Helvetica-Bold',
         textColor=AZUL,
         alignment=TA_RIGHT,

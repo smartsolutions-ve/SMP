@@ -11,13 +11,7 @@ import datetime
 from .models import Proyecto, PartidaProyecto, RegistroAvance, FotoProyecto, OrdenCambio
 
 
-def tenant_required(view_func):
-    def wrapper(request, *args, **kwargs):
-        if not request.tenant:
-            return redirect('login')
-        return view_func(request, *args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return login_required(wrapper)
+from apps.core.decorators import tenant_required
 
 
 @tenant_required

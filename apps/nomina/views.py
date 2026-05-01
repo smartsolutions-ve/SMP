@@ -11,20 +11,11 @@ from decimal import Decimal, InvalidOperation
 from .models import CargoTrabajador, HistorialCostoHH, RegistroHH
 
 
-def tenant_required(view_func):
-    def wrapper(request, *args, **kwargs):
-        if not request.tenant:
-            messages.error(request, 'No tienes empresa asignada.')
-            return redirect('login')
-        if not request.user.puede_ver_costos:
-            messages.error(request, 'No tienes permisos para acceder a Nómina.')
-            return redirect('dashboard')
-        return view_func(request, *args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return login_required(wrapper)
+from apps.core.decorators import tenant_required, permiso_costos_required
 
 
 @tenant_required
+@permiso_costos_required
 def lista_cargos_view(request):
     empresa = request.tenant
     cargos = CargoTrabajador.objects.filter(empresa=empresa)
@@ -55,6 +46,7 @@ def lista_cargos_view(request):
 
 
 @tenant_required
+@permiso_costos_required
 def crear_cargo_view(request):
     empresa = request.tenant
 
@@ -69,6 +61,7 @@ def crear_cargo_view(request):
 
 
 @tenant_required
+@permiso_costos_required
 def editar_cargo_view(request, cargo_id):
     empresa = request.tenant
     cargo = get_object_or_404(CargoTrabajador, id=cargo_id, empresa=empresa)
@@ -85,6 +78,7 @@ def editar_cargo_view(request, cargo_id):
 
 
 @tenant_required
+@permiso_costos_required
 def detalle_cargo_view(request, cargo_id):
     empresa = request.tenant
     cargo = get_object_or_404(CargoTrabajador, id=cargo_id, empresa=empresa)
@@ -106,6 +100,7 @@ def detalle_cargo_view(request, cargo_id):
 
 
 @tenant_required
+@permiso_costos_required
 def registrar_hh_view(request, partida_id):
     """Registrar horas hombre en una partida de proyecto."""
     from apps.proyectos.models import PartidaProyecto
@@ -179,6 +174,7 @@ def registrar_hh_view(request, partida_id):
 
 
 @tenant_required
+@permiso_costos_required
 def buscar_cargos_api(request):
     """API JSON para búsqueda de cargos."""
     empresa = request.tenant
